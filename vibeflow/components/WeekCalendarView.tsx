@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { Course, PlannerTask } from "../types";
 import { courseMatchesTeachingWeek } from "../lib/parseSchedule";
 
@@ -10,12 +10,14 @@ export default function WeekCalendarView({
   courses,
   tasks,
   teachingWeek,
+  onMoveTask,
 }: {
   locale: "cn" | "en";
   selectedDate: string;
   courses: Course[];
   tasks: PlannerTask[];
   teachingWeek: number;
+  onMoveTask?: (id: string, toDate: string) => void;
 }) {
   const isCn = locale === "cn";
 
@@ -60,13 +62,34 @@ export default function WeekCalendarView({
       </div>
       <div className="grid grid-cols-7 gap-2">
         {weekDays.map((d) => (
-          <div key={d} className="rounded-[24px] border border-[rgba(45,35,25,0.08)] bg-[rgba(255,251,245,0.96)] p-2">
+          <div
+            key={d}
+            className="rounded-[24px] border border-[rgba(45,35,25,0.08)] bg-[rgba(255,251,245,0.96)] p-2"
+            onDragOver={(e) => { e.preventDefault(); }}
+            onDrop={(e) => {
+              try {
+                const text = e.dataTransfer.getData("text/plain");
+                const payload = JSON.parse(text);
+                if (payload && payload.id) onMoveTask?.(payload.id, d);
+              } catch {}
+            }}
+          >
             <div className="space-y-1">
               {grouped[d].courses.slice(0, 6).map((c, idx) => (
                 <div key={`c-${idx}`} className="rounded-xl bg-amber-500/10 px-2 py-1 text-xs text-[#9a5f13] truncate">{c.name}</div>
               ))}
               {grouped[d].tasks.slice(0, 6).map((t) => (
-                <div key={t.id} className="rounded-xl bg-[rgba(45,35,25,0.06)] px-2 py-1 text-xs text-[var(--vf-text)] truncate">{t.name} · {t.estimatedMinutes}m</div>
+                <div
+                  key={t.id}
+                  draggable
+                  onDragStart={(e) => {
+                    e.dataTransfer.setData("text/plain", JSON.stringify({ id: t.id }));
+                  }}
+                  className="cursor-move rounded-xl bg-[rgba(45,35,25,0.06)] px-2 py-1 text-xs text-[var(--vf-text)] truncate"
+                  title={t.name}
+                >
+                  {t.name} · {t.estimatedMinutes}m
+                </div>
               ))}
             </div>
           </div>

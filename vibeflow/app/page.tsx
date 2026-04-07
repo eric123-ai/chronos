@@ -1838,6 +1838,14 @@ export default function HomePage() {
                 onSelectDate={handleSelectCalendarDate}
                 onJumpToTimeline={handleJumpToTimeline}
               />
+              <WeekCalendarView
+                locale={locale}
+                selectedDate={selectedDate}
+                courses={courses}
+                tasks={tasks}
+                teachingWeek={teachingWeek}
+                onMoveTask={(id, toDate) => setTasks((cur) => cur.map((t) => t.id === id ? { ...t, plannedDate: toDate } : t))}
+              />
             </div>
           ) : null}
 

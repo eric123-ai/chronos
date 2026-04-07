@@ -39,7 +39,6 @@ import { SecondaryToolsPanel } from "../components/SecondaryToolsPanel";
 import { TodayDashboard } from "../components/TodayDashboard";
 import { TodayTimeline } from "../components/TodayTimeline";
 import TaskListView from "../components/TaskListView";
-import WeekCalendarView from "../components/WeekCalendarView";
 import SyncBootstrap from "../components/SyncBootstrap";
 import { useI18n } from "../components/I18nProvider";
 import { autoSchedule, computeGoalDrivenImportance, computePriorityScore, type ScheduleItem } from "../lib/autoSchedule";

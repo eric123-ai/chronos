@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import TaskListView from "../../components/TaskListView";
+import { writeJSON } from "../../lib/storage";
 import { LanguageSwitcher } from "../../components/LanguageSwitcher";
 import type { PlannerTask } from "../../types";
 import { useI18n } from "../../components/I18nProvider";
@@ -23,6 +24,7 @@ export default function ListPage() {
   const [hydrated, setHydrated] = useState(false);
   const [selectedDate, setSelectedDate] = useState("");
   const [tasks, setTasks] = useState<PlannerTask[]>([]);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   useEffect(() => {
     const today = formatLocalDate(new Date());
@@ -35,6 +37,34 @@ export default function ListPage() {
     if (!hydrated) return;
     saveTasks(tasks);
   }, [hydrated, tasks]);
+
+  // batch ops helpers
+  const batchMoveDays = useCallback((days: number) => {
+    const set = new Set(selectedIds);
+    setTasks((current) => current.map((t) => {
+      if (!set.has(t.id)) return t;
+      const base = t.plannedDate ? new Date(t.plannedDate + "T00:00:00") : new Date();
+      base.setDate(base.getDate() + days);
+      const next = formatLocalDate(base);
+      return { ...t, plannedDate: next };
+    }));
+  }, [selectedIds]);
+
+  const batchClearRemind = useCallback(() => {
+    const set = new Set(selectedIds);
+    setTasks((current) => current.map((t) => set.has(t.id) ? { ...t, remindAt: undefined } : t));
+  }, [selectedIds]);
+
+  const batchSetRemind = useCallback((mins: number) => {
+    const when = new Date(Date.now() + Math.max(1, mins) * 60000);
+    const label = toLocalMinuteString(when);
+    const set = new Set(selectedIds);
+    setTasks((current) => current.map((t) => set.has(t.id) ? { ...t, remindAt: label } : t));
+  }, [selectedIds]);
+
+  const toggleSelect = useCallback((id: string) => {
+    setSelectedIds((cur) => cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]);
+  }, []);
 
   const handleToggleComplete = useCallback((id: string) => {
     setTasks((current) => current.map((t) => {
@@ -78,6 +108,27 @@ export default function ListPage() {
         </header>
 
         <main className="mt-4">
+          <div className="mb-3 flex flex-wrap gap-2 text-xs">
+            <span className="rounded-full bg-[rgba(45,35,25,0.06)] px-3 py-1">{locale === "cn" ? "已选" : "Selected"}: {selectedIds.length}</span>
+            <button type="button" onClick={() => setSelectedIds([])} className="rounded-full bg-[rgba(45,35,25,0.06)] px-3 py-1">{locale === "cn" ? "清空选择" : "Clear"}</button>
+            <div className="relative group">
+              <button type="button" className="rounded-full bg-[rgba(45,35,25,0.06)] px-3 py-1">{locale === "cn" ? "批量移动" : "Move"}</button>
+              <div className="absolute z-10 hidden w-[160px] gap-1 rounded-2xl border border-[rgba(45,35,25,0.08)] bg-[rgba(255,251,245,0.98)] p-2 text-xs group-hover:grid">
+                {[-7,-1,1,7].map((d) => (
+                  <button key={d} type="button" onClick={() => batchMoveDays(d)} className="rounded-xl px-2 py-1 text-left hover:bg-[rgba(45,35,25,0.06)]">{d > 0 ? (locale === "cn" ? `后移 ${d} 天` : `+${d} day`) : (locale === "cn" ? `前移 ${-d} 天` : `${d} day`)}</button>
+                ))}
+              </div>
+            </div>
+            <div className="relative group">
+              <button type="button" className="rounded-full bg-[rgba(45,35,25,0.06)] px-3 py-1">{locale === "cn" ? "批量提醒" : "Remind"}</button>
+              <div className="absolute z-10 hidden w-[180px] gap-1 rounded-2xl border border-[rgba(45,35,25,0.08)] bg-[rgba(255,251,245,0.98)] p-2 text-xs group-hover:grid">
+                {[5,10,30,60,120].map((m) => (
+                  <button key={m} type="button" onClick={() => batchSetRemind(m)} className="rounded-xl px-2 py-1 text-left hover:bg-[rgba(45,35,25,0.06)]">{locale === "cn" ? `全部 ${m} 分钟后` : `all in ${m} min`}</button>
+                ))}
+                <button type="button" onClick={batchClearRemind} className="rounded-xl px-2 py-1 text-left hover:bg-[rgba(45,35,25,0.06)]">{locale === "cn" ? "清除提醒" : "Clear"}</button>
+              </div>
+            </div>
+          </div>
           <TaskListView
             locale={locale}
             tasks={tasks}
@@ -85,6 +136,11 @@ export default function ListPage() {
             onToggleComplete={handleToggleComplete}
             onMoveToTomorrow={handleMoveToTomorrow}
             onQuickRemind={handleQuickRemind}
+            selectable
+            selectedIds={selectedIds}
+            onToggleSelect={toggleSelect}
+            onUpdateNotes={(id, notes) => setTasks((cur) => cur.map((t) => t.id === id ? { ...t, notes } : t))}
+            onUpdateSteps={(id, steps) => setTasks((cur) => cur.map((t) => t.id === id ? { ...t, steps } : t))}
           />
         </main>
       </div>

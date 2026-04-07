@@ -1525,7 +1525,9 @@ export default function HomePage() {
     Object.values(reminderTimersRef.current).forEach((id) => window.clearTimeout(id));
     reminderTimersRef.current = {};
     const now = Date.now();
+    const enabled = localStorage.getItem('chronos.notifications.enabled') !== '0';
     tasks.forEach((t) => {
+      if (!enabled) return;
       if (!t.remindAt || t.deleted) return;
       const ts = new Date(t.remindAt.replace(/Z$/, '')).getTime();
       const delay = ts - now;

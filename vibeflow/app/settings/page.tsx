@@ -25,12 +25,17 @@ function NotifyControls() {
   async function test() {
     try { const reg = await navigator.serviceWorker.getRegistration(); reg?.active?.postMessage({ type: 'SHOW_NOTIFICATION', title: '测试提醒', body: '这是一条测试通知。' }); } catch {}
   }
+  function toggleGlobal(enable: boolean) {
+    try { localStorage.setItem('chronos.notifications.enabled', enable ? '1' : '0'); } catch {}
+  }
   return (
     <div className="mt-2">
       <div className="text-sm text-[var(--vf-text-muted)]">权限：{perm}</div>
       <div className="mt-3 flex flex-wrap gap-2">
         <button type="button" onClick={request} className="chronos-button-secondary rounded-full px-4 py-2 text-sm font-medium">申请权限</button>
         <button type="button" onClick={test} className="chronos-button-secondary rounded-full px-4 py-2 text-sm font-medium">测试通知</button>
+        <button type="button" onClick={() => toggleGlobal(true)} className="chronos-button-secondary rounded-full px-4 py-2 text-sm font-medium">开启全局</button>
+        <button type="button" onClick={() => toggleGlobal(false)} className="chronos-button-secondary rounded-full px-4 py-2 text-sm font-medium">关闭全局</button>
       </div>
     </div>
   );

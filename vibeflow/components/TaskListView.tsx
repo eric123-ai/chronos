@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import type { PlannerTask } from "../types";
 
 export default function TaskListView({
@@ -15,6 +15,7 @@ export default function TaskListView({
   onToggleSelect,
   onUpdateNotes,
   onUpdateSteps,
+  onAddTaskForDate,
 }: {
   locale: "cn" | "en";
   tasks: PlannerTask[];
@@ -27,9 +28,29 @@ export default function TaskListView({
   onToggleSelect?: (id: string) => void;
   onUpdateNotes?: (id: string, notes: string) => void;
   onUpdateSteps?: (id: string, steps: string[]) => void;
+  onAddTaskForDate?: (date: string, input: string) => void;
 }) {
   const isCn = locale === "cn";
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [isMobile, setIsMobile] = useState(false);
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [qaText, setQaText] = useState<Record<string, string>>({});
+  const [qaDate, setQaDate] = useState<Record<string, string>>({});
+  const [qaErr, setQaErr] = useState<Record<string, string | undefined>>({});
+
+  // Mobile bottom sheet state
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [sheetForKey, setSheetForKey] = useState<string | null>(null);
+  const [sheetDate, setSheetDate] = useState<string>("");
+  const [sheetText, setSheetText] = useState<string>("");
+  const [sheetErr, setSheetErr] = useState<string>("");
+
+  useEffect(() => {
+    const check = () => setIsMobile(typeof window !== 'undefined' && window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   const sections = useMemo(() => {
     const today = selectedDate;
@@ -73,12 +94,99 @@ export default function TaskListView({
 
   return (
     <section className="grid gap-4">
+      {isMobile ? (
+        <div className="rounded-2xl border border-[rgba(45,35,25,0.08)] bg-[rgba(255,251,245,0.96)] px-4 py-3 text-xs text-[var(--vf-text-soft)]">
+          {isCn
+            ? "用途：按时间维度分组查看任务；下一步：展开‘今天/明天/本周’，长按可多选批量操作。"
+            : "Purpose: grouped by time. Next: expand Today/Tomorrow/This week; long‑press to multi‑select."}
+        </div>
+      ) : null}
       {sections.map((sec) => (
         <div key={sec.key} className="glass-surface rounded-[32px] p-5">
-          <div className="text-sm font-semibold">{sec.title}</div>
-          <div className="mt-3 space-y-2">
-            {sec.items.length ? (
-              sec.items.slice(0, 80).map((t) => {
+          <div className="flex items-center justify-between gap-2">
+            <div className="text-sm font-semibold">{sec.title}</div>
+            <div className="flex items-center gap-2">
+              {/* per-date quick add (desktop) */}
+              {(() => {
+                const requireDate = sec.key === 'week' || sec.key === 'scheduled' || sec.key === 'overdue';
+                function hasDateHint(text: string) {
+                  return /(\d{4}-\d{2}-\d{2})|(\b\d{1,2}-\d{1,2}\b)|明天|后天|本周|下周|周[一二三四五六日天]|周末|工作日|本月|下月|today|tomorrow|Mon|Tue|Wed|Thu|Fri|Sat|Sun/i.test(text);
+                }
+                const add = () => {
+                  const text = (qaText[sec.key] || '').trim();
+                  if (!text) return;
+                  if (requireDate && !(qaDate[sec.key] || hasDateHint(text))) {
+                    setQaErr((e) => ({ ...e, [sec.key]: isCn ? '需要日期' : 'Date required' }));
+                    return;
+                  }
+                  setQaErr((e) => ({ ...e, [sec.key]: undefined }));
+                  let date = selectedDate;
+                  if (sec.key === 'tomorrow') {
+                    const t = new Date(selectedDate + 'T00:00:00'); t.setDate(t.getDate()+1);
+                    date = `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+                  }
+                  if (sec.key === 'unscheduled') date = '';
+                  if (qaDate[sec.key]) date = qaDate[sec.key]!;
+                  onAddTaskForDate?.(date, text);
+                  setQaText((q) => ({ ...q, [sec.key]: '' }));
+                };
+                return (
+                  <div className="hidden items-center gap-2 md:flex">
+                    {requireDate ? (
+                      <input
+                        type="date"
+                        value={qaDate[sec.key] || ''}
+                        onChange={(e) => setQaDate((q) => ({ ...q, [sec.key]: e.target.value }))}
+                        className="h-8 rounded-xl border border-[rgba(45,35,25,0.12)] bg-[rgba(255,251,245,0.96)] px-2 text-xs"
+                        aria-label={isCn ? '选择日期' : 'Select date'}
+                      />
+                    ) : null}
+                    <input
+                      placeholder={isCn ? '快速添加（自然语言）' : 'Quick add (NL)'}
+                      className="h-8 w-[220px] rounded-xl border border-[rgba(45,35,25,0.12)] bg-[rgba(255,251,245,0.96)] px-2 text-xs"
+                      value={qaText[sec.key] || ''}
+                      onChange={(e) => setQaText((q) => ({ ...q, [sec.key]: e.target.value }))}
+                      onKeyDown={(e) => { if (e.key === 'Enter') add(); }}
+                    />
+                    <button type="button" onClick={add} className="rounded-full bg-[rgba(45,35,25,0.06)] px-3 py-1.5 text-xs">{isCn ? '添加' : 'Add'}</button>
+                    {qaErr[sec.key] ? <span className="text-[10px] text-rose-500">{qaErr[sec.key]}</span> : null}
+                  </div>
+                );
+              })()}
+              {isMobile ? (
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    className="rounded-full bg-[rgba(45,35,25,0.06)] px-2.5 py-1 text-xs"
+                    onClick={() => {
+                      // decide default date for this section
+                      let date = selectedDate;
+                      if (sec.key === 'tomorrow') {
+                        const t = new Date(selectedDate + 'T00:00:00'); t.setDate(t.getDate()+1);
+                        date = `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+                      }
+                      if (sec.key === 'unscheduled') date = '';
+                      setSheetForKey(sec.key);
+                      setSheetDate(date);
+                      setSheetText('');
+                      setSheetErr('');
+                      setSheetOpen(true);
+                    }}
+                    aria-label={isCn ? '添加任务' : 'Add task'}
+                  >
+                    + {isCn ? '添加' : 'Add'}
+                  </button>
+                  <button type="button" onClick={() => setCollapsed((c) => ({ ...c, [sec.key]: !c[sec.key] }))} className="text-xs text-[var(--vf-text-muted)]">
+                    {collapsed[sec.key] ? (isCn ? "展开" : "Expand") : (isCn ? "收起" : "Collapse")}
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          </div>
+          {!isMobile || !collapsed[sec.key] ? (
+            <div className="mt-3 space-y-2">
+              {sec.items.length ? (
+                sec.items.slice(0, isMobile ? 20 : 80).map((t) => {
                 const isSelected = !!selectedIds?.includes(t.id);
                 const open = !!expanded[t.id];
                 return (
@@ -138,6 +246,7 @@ export default function TaskListView({
               <div className="text-sm text-[var(--vf-text-muted)]">{isCn ? "暂无任务" : "No tasks"}</div>
             )}
           </div>
+          ) : null}
         </div>
       ))}
     </section>

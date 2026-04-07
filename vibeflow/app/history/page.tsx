@@ -211,7 +211,7 @@ export default function HistoryPage() {
 
         <div className="mt-4 grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
           <section className="glass-surface rounded-[32px] p-5">
-            <div className="flex items-center justify-between gap-3"><div><div className="text-sm font-semibold">{text.heatmap}</div><div className="mt-1 text-sm text-[var(--vf-text-muted)]">{monthLabel}</div></div><div className="rounded-full bg-[rgba(45,35,25,0.06)] px-3 py-2 text-xs text-[var(--vf-text-muted)]">{text.selected}: {selectedDate || "--"}</div></div>
+            <div className="flex items-center justify-between gap-3"><div><div className="text-sm font-semibold">{text.heatmap}</div><div className="mt-1 text-sm text-[var(--vf-text-muted)]">{hydrated ? monthLabel : (locale === "cn" ? "加载中…" : "Loading...")}</div></div><div className="rounded-full bg-[rgba(45,35,25,0.06)] px-3 py-2 text-xs text-[var(--vf-text-muted)]">{text.selected}: {selectedDate || "--"}</div></div>
             {hydrated ? <div className="mt-5">
               <div className="mb-2 grid grid-cols-7 gap-2">{text.weekdays.map((label) => <div key={label} className="text-center text-[11px] text-[var(--vf-text-soft)]">{label}</div>)}</div>
               <div className="grid grid-cols-7 gap-2">
@@ -402,8 +402,8 @@ export default function HistoryPage() {
             </div>
 
             <div className="mt-4 space-y-3">
-              {(historyLog.length ? historyLog : loadHistory()).length ? (
-                (historyLog.length ? historyLog : loadHistory()).slice(0, 8).map((record) => (
+              {(historyLog.length ? historyLog : (hydrated ? loadHistory() : [])).length ? (
+                (historyLog.length ? historyLog : (hydrated ? loadHistory() : [])).slice(0, 8).map((record) => (
                   <button
                     key={record.date}
                     type="button"

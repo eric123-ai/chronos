@@ -12,6 +12,7 @@ type TaskDraft = {
   goalId: string;
   exactTime: string;
   deadline: string;
+  plannedDate: string; // YYYY-MM-DD 安排到这一天
   isMandatory: boolean;
   hardBoundary: boolean;
 };
@@ -147,6 +148,24 @@ export function QuickTaskComposer({
             type="date"
             onChange={(event) => onDraftChange({ deadline: event.target.value })}
             className={`${fieldClassName} font-precision`}
+            title={isCn ? "填写截止日期（DDL）" : "Set deadline (DDL)"}
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <input
+            value={(draft as any).plannedDate || ""}
+            type="date"
+            onChange={(event) => onDraftChange({ plannedDate: event.target.value } as any)}
+            placeholder={isCn ? "安排到某一天（可选）" : "Plan to date (optional)"}
+            className={`${fieldClassName} font-precision`}
+            title={isCn ? "将任务直接安排到指定日期" : "Place task directly on a day"}
+          />
+          <input
+            value={draft.exactTime}
+            onChange={(event) => onDraftChange({ exactTime: event.target.value })}
+            placeholder={isCn ? "固定时间 16:00" : "Fixed time 16:00"}
+            className={`${fieldClassName} font-precision`}
+            title={isCn ? "若填写则视为固定时段" : "Treat as fixed slot when filled"}
           />
         </div>
         <input

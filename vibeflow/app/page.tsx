@@ -74,7 +74,7 @@ import {
 import { readJSON, writeJSON } from "../lib/storage";
 import type { Course, Goal, GoalPeriod, PlannerTask, RecurrenceRule, Reward, TaskCategory, Weekday } from "../types";
 
-type TabKey = "today" | "list" | "calendar" | "insight";
+type TabKey = "today" | "list" | "calendar" | "tools" | "insight";
 type ThemeMode = "paper" | "obsidian";
 type SurfaceMode = "default" | "flat";
 
@@ -83,6 +83,7 @@ type TaskDraft = {
   estimatedMinutes: string;
   urgency: string;
   deadline: string;
+  plannedDate?: string; // YYYY-MM-DD, explicitly plan to another day
   energyCost: "low" | "medium" | "high";
   category: TaskCategory;
   goalId: string;
@@ -393,7 +394,7 @@ const TEXT = {
   cn: {
     brand: "时序 Chronos",
     subtitle: "先排课程，再安任务，再把今天真正做完。",
-    tabs: { today: "今日", list: "清单", calendar: "主历", insight: "复盘" },
+    tabs: { today: "今日", list: "清单", calendar: "主历", tools: "工具", insight: "复盘" },
     today: "今天",
     addTask: "添加任务",
     addRule: "新建循环规则",
@@ -443,10 +444,10 @@ const TEXT = {
     goalsPanel: "目标",
     aiReport: "AI 报告",
     sparkMode: "专注模式",
-    flashNotesTitle: "闪念记录",
-    flashNotePlaceholder: "机器人 / C++ / 生活灵感",
-    saveFlashNote: "保存闪念",
-    noFlashNotes: "还没有闪念记录。",
+    flashNotesTitle: "每日总结",
+    flashNotePlaceholder: "今天最重要的一件事 / 一条心得 / 明日TODO",
+    saveFlashNote: "保存总结",
+    noFlashNotes: "还没有今日总结。",
     robotLabel: "机器人",
     cppLabel: "C++",
     noGrowthCurve: "还没有成长曲线。",
@@ -529,7 +530,7 @@ const TEXT = {
   en: {
     brand: "Chronos",
     subtitle: "Classes first, tasks second, and a clearer path through the day.",
-    tabs: { today: "Today", list: "List", calendar: "Master", insight: "Review" },
+    tabs: { today: "Today", list: "List", calendar: "Master", tools: "Tools", insight: "Review" },
     today: "Today",
     addTask: "Add task",
     addRule: "Add recurrence rule",
@@ -579,10 +580,10 @@ const TEXT = {
     goalsPanel: "Goals",
     aiReport: "AI Report",
     sparkMode: "Simple Mode",
-    flashNotesTitle: "Flash Notes",
-    flashNotePlaceholder: "Robot / C++ / life note",
-    saveFlashNote: "Save Flash Note",
-    noFlashNotes: "No flash notes yet.",
+    flashNotesTitle: "Daily Summary",
+    flashNotePlaceholder: "Top takeaway / one insight / tomorrow TODO",
+    saveFlashNote: "Save Summary",
+    noFlashNotes: "No daily summary yet.",
     robotLabel: "Robot",
     cppLabel: "C++",
     noGrowthCurve: "No growth curve yet.",
@@ -941,6 +942,7 @@ export default function HomePage() {
   const [redeemedRewardIds, setRedeemedRewardIds] = useState<string[]>([]);
   const [redeemedRewards, setRedeemedRewards] = useState<Reward[]>([]);
   const [taskDraft, setTaskDraft] = useState<TaskDraft>(DEFAULT_TASK_DRAFT);
+  const [createSheet, setCreateSheet] = useState<{ open: boolean; date: string | null }>({ open: false, date: null });
   const [ruleDraft, setRuleDraft] = useState<RuleDraft>(DEFAULT_RULE_DRAFT);
   const [goalDraft, setGoalDraft] = useState<GoalDraft>(DEFAULT_GOAL_DRAFT);
   const [manualTemplateDraft, setManualTemplateDraft] = useState<ManualTemplateDraft>(DEFAULT_MANUAL_TEMPLATE_DRAFT);
@@ -966,6 +968,7 @@ export default function HomePage() {
   const timelineSectionRef = useRef<HTMLDivElement | null>(null);
   const [cursor, setCursor] = useState({ x: 0, y: 0, active: false });
   const [editingCourseIndex, setEditingCourseIndex] = useState<number | null>(null);
+  const importSectionRef = useRef<HTMLDivElement | null>(null);
 
   const pushToast = useCallback((message: string) => {
     setToast((current) => ({ id: (current?.id ?? 0) + 1, message }));
@@ -1012,6 +1015,9 @@ export default function HomePage() {
     const timer = window.setTimeout(() => hydrateForDate(new Date()), 0);
     return () => window.clearTimeout(timer);
   }, [hydrateForDate]);
+
+  // Allow bottom-sheet "Add" to trigger existing quick-add flow
+  // moved below handleAddTask to avoid TDZ
 
   useEffect(() => { if (hydrated) saveCourses(courses); }, [courses, hydrated]);
   useEffect(() => { if (hydrated) saveGoals(goals); }, [goals, hydrated]);
@@ -1332,7 +1338,7 @@ export default function HomePage() {
       const pre: TaskDraft = { ...taskDraft, name: nlp.title || taskDraft.name };
       let draft = parseQuickCommand(pre);
       if (nlp.durationMin) draft = { ...draft, estimatedMinutes: String(Math.max(5, nlp.durationMin)) };
-      let plannedDateForCreate = selectedDate;
+      let plannedDateForCreate = taskDraft.plannedDate || selectedDate;
       if (nlp.plannedDate) {
         const [datePart, timePart] = nlp.plannedDate.split("T");
         if (datePart) plannedDateForCreate = datePart;
@@ -1362,11 +1368,22 @@ export default function HomePage() {
       setTasks((current) => [createTask(draft, plannedDateForCreate, selectedWeekday), ...current]);
     } catch {
       const parsed = parseQuickCommand(taskDraft);
-      setTasks((current) => [createTask(parsed, selectedDate, selectedWeekday), ...current]);
+      const targetDate = taskDraft.plannedDate || selectedDate;
+      setTasks((current) => [createTask(parsed, targetDate, selectedWeekday), ...current]);
     }
     setTaskDraft(DEFAULT_TASK_DRAFT);
     pushToast(text.saved);
   }, [locale, pushToast, selectedDate, selectedWeekday, taskDraft, text.saved]);
+
+  // Allow bottom-sheet "Add" to trigger existing quick-add flow
+  useEffect(() => {
+    function onSheetSubmit() {
+      handleAddTask();
+      setCreateSheet({ open: false, date: null });
+    }
+    window.addEventListener('chronos-quick-add-from-sheet' as any, onSheetSubmit);
+    return () => window.removeEventListener('chronos-quick-add-from-sheet' as any, onSheetSubmit);
+  }, [handleAddTask]);
 
   const handleAddBreak = useCallback((minutes: number = 15) => {
     const name = locale === "cn" ? "休息" : "Break";
@@ -1755,38 +1772,46 @@ export default function HomePage() {
       
       <SyncBootstrap />
       <div className="relative z-20 mx-auto max-w-7xl px-4 py-6 transition-colors duration-700">
-        <header className="glass-surface relative overflow-hidden rounded-[32px] px-6 py-6">
-          {!isFlatMode ? <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(92,126,164,0.16),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(67,90,116,0.12),transparent_28%)]" /> : null}
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div className="relative flex-1">
-              <div className={`font-precision text-sm uppercase ${isFlatMode ? "text-[#9a5f13]" : "text-[#f0c46e]"}`}>
-                {locale === "cn" ? "大学生时间规划 V1" : "Student planning v1"}
-              </div>
-              <h1 className={`font-display mt-2 text-4xl font-black tracking-tighter md:text-6xl ${titleClassName}`}>{text.brand}</h1>
-              <p className={`mt-2 max-w-3xl text-sm ${mutedTextClassName}`}>{text.subtitle}</p>
-              <div className={`font-precision mt-3 text-xs ${publicApiUrl ? subtleTextClassName : mutedTextClassName}`}>
-                {publicApiUrl ? `API: ${publicApiUrl}` : (locale === "cn" ? "本地模式运行中" : "Running in local mode")}
-              </div>
-              <div className={`mt-5 grid gap-4 rounded-[30px] p-5 md:grid-cols-[minmax(0,1fr)_auto] md:items-end ${shellGlassClassName}`}>
-                <div>
-                  <div className={`text-xs uppercase tracking-[0.28em] ${isFlatMode ? "text-[#9a5f13]" : "text-[#e0b45c]"}`}>{text.initializeTitle}</div>
-                  <h2 className={`mt-3 text-2xl font-semibold ${titleClassName}`}>{text.initializeHeading}</h2>
-                  <p className={`mt-2 max-w-2xl text-sm ${mutedTextClassName}`}>{text.initializeDescription}</p>
+        {activeTab === "today" ? (
+          <header className="glass-surface relative overflow-hidden rounded-[32px] px-6 py-6">
+            {!isFlatMode ? <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(92,126,164,0.16),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(67,90,116,0.12),transparent_28%)]" /> : null}
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div className="relative flex-1">
+                <div className={`font-precision text-sm uppercase ${isFlatMode ? "text-[#9a5f13]" : "text-[#f0c46e]"}`}>
+                  {locale === "cn" ? "大学生时间规划 V1" : "Student planning v1"}
                 </div>
+                <h1 className={`font-display mt-2 text-4xl font-black tracking-tighter md:text-6xl ${titleClassName}`}>{text.brand}</h1>
+                <p className={`mt-2 max-w-3xl text-sm ${mutedTextClassName}`}>{text.subtitle}</p>
+                <div className={`font-precision mt-3 text-xs ${publicApiUrl ? subtleTextClassName : mutedTextClassName}`}>
+                  {publicApiUrl ? `API: ${publicApiUrl}` : (locale === "cn" ? "本地模式运行中" : "Running in local mode")}
+                </div>
+                <div className={`mt-5 grid gap-4 rounded-[30px] p-5 md:grid-cols-[minmax(0,1fr)_auto] md:items-end ${shellGlassClassName}`}>
+                  <div>
+                    <div className={`text-xs uppercase tracking-[0.28em] ${isFlatMode ? "text-[#9a5f13]" : "text-[#e0b45c]"}`}>{text.initializeTitle}</div>
+                    <h2 className={`mt-3 text-2xl font-semibold ${titleClassName}`}>{text.initializeHeading}</h2>
+                    <p className={`mt-2 max-w-2xl text-sm ${mutedTextClassName}`}>{text.initializeDescription}</p>
+                  </div>
                 <button type="button" onClick={handleCreateTimeline} className={`${primaryButtonClassName} min-w-[168px]`}>
                   {text.createTimeline}
                 </button>
               </div>
             </div>
-            <div className="relative flex flex-wrap items-center gap-2 lg:max-w-[320px] lg:justify-end">
+            <div className="relative flex flex-wrap items-center gap-2 lg:max-w-[420px] lg:justify-end">
               <LanguageSwitcher />
-              <Link href="/list" className="chronos-button-secondary rounded-full px-4 py-2 text-sm font-medium">{locale === "cn" ? "清单" : "List"}</Link>
-              <Link href="/calendar" className="chronos-button-secondary rounded-full px-4 py-2 text-sm font-medium">{locale === "cn" ? "日历" : "Calendar"}</Link>
+              <button
+                type="button"
+                onClick={() => importSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+                className="inline-flex items-center gap-2 rounded-full border border-[rgba(45,35,25,0.12)] bg-[rgba(255,251,245,0.96)] px-4 py-2 text-sm"
+                title={locale === 'cn' ? '导入课表：支持文本/图片/文件三种方式' : 'Import schedule: text/image/file'}
+              >
+                {locale === 'cn' ? '导入课表' : 'Import schedule'}
+              </button>
               <Link href="/history" className="chronos-button-secondary rounded-full px-4 py-2 text-sm font-medium">{text.history}</Link>
               <Link href="/settings" className="chronos-button-secondary rounded-full px-4 py-2 text-sm font-medium">{locale === "cn" ? "设置" : "Settings"}</Link>
             </div>
           </div>
         </header>
+        ) : null}
 
         <main className="mt-4">
           {activeTab === "today" ? (
@@ -1807,7 +1832,7 @@ export default function HomePage() {
                 } : null}
                 freeWindows={freeWindows}
                 onOpenImport={() => setActiveTab("today")}
-                onOpenComposer={() => taskComposerRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })}
+                onOpenComposer={() => setCreateSheet({ open: true, date: selectedDate })}
               />
               <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
                 <TodayTimeline
@@ -1835,6 +1860,7 @@ export default function HomePage() {
                       onSubmit={handleAddTask}
                     />
                   </div>
+                  <div ref={importSectionRef} className="-mt-2 mb-1 text-[10px] text-[var(--vf-text-soft)]">{locale === 'cn' ? '导入课表：支持文本/图片/文件三种方式；导入后可以在主历中统一安排。' : 'Import schedule via text/image/file; then arrange in calendar.'}</div>
                   <CourseImportStatus
                     locale={locale}
                     surfaceMode={surfaceMode}
@@ -1882,8 +1908,12 @@ export default function HomePage() {
             <div className="space-y-4">
               <div className="text-xs text-[var(--vf-text-soft)]">
                 {locale === "cn"
-                  ? "用途：总览日程密度与冲突；下一步：在周历中拖拽调整，或点下方按钮跳回今日时间线。"
-                  : "Purpose: overview of schedule density/conflicts. Next: drag in the week view, or jump back to Today timeline."}
+                  ? "用途：总览日程密度与冲突；下一步：在周历中拖拽调整，或点‘回到今日’快速返回。"
+                  : "Purpose: overview of density/conflicts. Next: drag in Week view, or tap 'Back to Today'."}
+              </div>
+              <div className="mt-2 flex gap-2">
+                <button type="button" onClick={() => setActiveTab("today")} className="chronos-button-secondary rounded-full px-3 py-1.5 text-xs">{locale === "cn" ? "回到今日" : "Back to Today"}</button>
+                <button type="button" onClick={() => document?.querySelector?.("[data-week-grid]")?.scrollIntoView?.({ behavior: "smooth", block: "start" })} className="chronos-button-secondary rounded-full px-3 py-1.5 text-xs">{locale === "cn" ? "跳到周视图" : "Jump to Week"}</button>
               </div>
               <CalendarComponent
                 selectedDate={selectedDate}
@@ -1909,11 +1939,59 @@ export default function HomePage() {
                 tasks={tasks}
                 teachingWeek={teachingWeek}
                 onMoveTask={(id, toDate) => setTasks((cur) => cur.map((t) => t.id === id ? { ...t, plannedDate: toDate } : t))}
+                onCreateQuick={(date) => setCreateSheet({ open: true, date })}
               />
             </div>
           ) : null}
 
           {activeTab === "list" ? (
+            <TaskListView
+              locale={locale}
+              tasks={tasks}
+              selectedDate={selectedDate}
+              onToggleComplete={handleToggleComplete}
+              onMoveToTomorrow={(id) => {
+                const t = new Date(selectedDate + "T00:00:00"); t.setDate(t.getDate() + 1);
+                const to = `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+                setTasks((cur) => cur.map((x) => x.id === id ? { ...x, plannedDate: to } : x));
+              }}
+              onQuickRemind={(id, minutes) => {
+                setTasks((cur) => cur.map((x) => x.id === id ? { ...x, remindAt: `${selectedDate}T${new Date(Date.now()+minutes*60000).toTimeString().slice(0,5)}` } : x));
+              }}
+              onAddTaskForDate={(date, text) => {
+                try {
+                  // eslint-disable-next-line @typescript-eslint/no-var-requires
+                  const { default: quickAddParser } = require("../lib/nlp/quickAddParser");
+                  const nlp = quickAddParser(String(text));
+                  const pre: TaskDraft = { ...taskDraft, name: nlp.title || text };
+                  let draft = parseQuickCommand(pre);
+                  if (nlp.durationMin) draft = { ...draft, estimatedMinutes: String(Math.max(5, nlp.durationMin)) };
+                  let target = date || selectedDate;
+                  if (nlp.plannedDate) {
+                    const [d, t] = nlp.plannedDate.split('T');
+                    if (d) target = d;
+                    if (t) draft = { ...draft, exactTime: t.slice(0,5), isMandatory: true };
+                  }
+                  setTasks((cur) => [createTask(draft, target, selectedWeekday), ...cur]);
+                  setTaskDraft(DEFAULT_TASK_DRAFT);
+                  pushToast(text.saved);
+                } catch {
+                  const draft = parseQuickCommand({ ...taskDraft, name: text });
+                  const target = date || selectedDate;
+                  setTasks((cur) => [createTask(draft, target, selectedWeekday), ...cur]);
+                  setTaskDraft(DEFAULT_TASK_DRAFT);
+                  pushToast(text.saved);
+                }
+              }}
+              selectable
+              selectedIds={[]}
+              onToggleSelect={() => {}}
+              onUpdateNotes={(id, notes) => setTasks((cur) => cur.map((x) => x.id === id ? { ...x, notes } : x))}
+              onUpdateSteps={(id, steps) => setTasks((cur) => cur.map((x) => x.id === id ? { ...x, steps } : x))}
+            />
+          ) : null}
+
+          {activeTab === "tools" ? (
             <SecondaryToolsPanel
               locale={locale}
               templates={TEMPLATE_LIBRARY}
@@ -2576,6 +2654,92 @@ export default function HomePage() {
       <AnimatePresence>{focusTaskId ? <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 grid place-items-center bg-[rgba(7,12,22,0.86)] px-4"><motion.div initial={{ scale: 0.94, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.98, opacity: 0 }} className="relative w-full max-w-2xl rounded-[40px] border border-[rgba(125,142,163,0.18)] bg-[rgba(15,24,38,0.94)] px-8 py-12 shadow-[0_0_90px_rgba(245,158,11,0.1)] backdrop-blur-xl"><button type="button" onClick={() => setFocusTaskId(null)} className="absolute right-5 top-5 grid h-10 w-10 place-items-center rounded-full border border-[rgba(125,142,163,0.18)] bg-[rgba(24,36,54,0.92)]"><X className="h-4 w-4" /></button>{(() => { const task = tasks.find((item) => item.id === focusTaskId); if (!task) return null; const meta = getPriorityMeta(computePriorityScore({ importance: computeGoalDrivenImportance(task, goals), urgency: task.urgency })); return <div className="text-center"><div className="mx-auto h-24 w-24 animate-breath rounded-full border border-amber-500/50 bg-amber-500/10" /><div className="mt-8 text-sm uppercase tracking-[0.4em] text-amber-300">{text.focus}</div><h2 className="mt-4 text-3xl font-semibold text-stone-50">{task.name}</h2><div className="mt-3"><span className={`rounded-full px-3 py-1 text-xs ${meta.className}`}>{locale === "cn" ? "优先级" : "Priority"} {meta.label}</span></div><div className="mt-3 font-precision text-stone-300">{task.estimatedMinutes} min</div><button type="button" onClick={() => handleToggleComplete(task.id)} className="chronos-button-primary mt-8 rounded-full px-5 py-3 text-sm font-medium text-white">{task.completed ? text.completed : text.complete}</button></div>; })()}</motion.div></motion.div> : null}</AnimatePresence>
 
       {toast ? <div className="fixed left-1/2 top-6 z-50 -translate-x-1/2"><div className={`rounded-full px-4 py-2 text-sm font-medium ${isFlatMode ? "border border-[rgba(45,35,25,0.08)] bg-[rgba(255,251,245,0.96)] text-[#9a5f13] shadow-none" : "border border-[rgba(125,142,163,0.12)] bg-[rgba(15,24,35,0.88)] text-[#f0c46e] shadow-[0_16px_40px_rgba(0,0,0,0.28)] backdrop-blur-xl"}`}>{toast.message}</div></div> : null}
+
+      {/* Bottom sheet for week quick-create */}
+      {createSheet.open ? (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/20" onClick={() => setCreateSheet({ open: false, date: null })}>
+          <div className="w-full max-w-md rounded-t-3xl bg-[rgba(255,251,245,0.98)] p-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="text-sm font-semibold text-[var(--vf-text)]">{locale === "cn" ? "快速创建" : "Quick create"}</div>
+            <div className="mt-1 text-xs text-[var(--vf-text-soft)]">{locale === "cn" ? `将安排到：${createSheet.date ?? ""}` : `Will plan to: ${createSheet.date ?? ""}`}</div>
+            <div className="mt-3 grid gap-2">
+              <div className="text-[10px] text-[var(--vf-text-soft)]">
+                {locale === "cn"
+                  ? "用途：一句话创建任务；示例：明早9点 / 19:30 / 每周一三 / ddl 2026-04-10 / 提前10分钟 / #study"
+                  : "Purpose: one-sentence create; examples: 9am tmr / 19:30 / MO,WE / ddl 2026-04-10 / remind 10m / #study"}
+              </div>
+              <input
+                value={taskDraft.name}
+                onChange={(e) => setTaskDraft((cur) => ({ ...cur, name: e.target.value, plannedDate: createSheet.date ?? cur.plannedDate }))}
+                placeholder={locale === "cn" ? "例如：明晚7点 30min 复习英语 提前10分钟" : "e.g. tmr 7pm 30m review remind 10m"}
+                className="chronos-field w-full rounded-2xl px-4 py-3 text-sm"
+              />
+              <div className="flex flex-wrap gap-2">
+                <button type="button" onClick={() => setTaskDraft((cur) => ({ ...cur, name: `${cur.name ? cur.name + " " : ""}25min` }))} className="chronos-button-secondary rounded-full px-3 py-1.5 text-xs">25min</button>
+                <button type="button" onClick={() => setTaskDraft((cur) => ({ ...cur, name: `${cur.name ? cur.name + " " : ""}@16:00`, exactTime: cur.exactTime || "16:00" }))} className="chronos-button-secondary rounded-full px-3 py-1.5 text-xs">@16:00</button>
+                <button type="button" onClick={() => {
+                  const t = new Date(Date.now() + 86400000);
+                  const yyyy = t.getFullYear();
+                  const mm = String(t.getMonth() + 1).padStart(2, '0');
+                  const dd = String(t.getDate()).padStart(2, '0');
+                  const d = `${yyyy}-${mm}-${dd}`;
+                  setTaskDraft((cur) => ({ ...cur, name: `${cur.name ? cur.name + " " : ""}ddl ${d}`, deadline: d }));
+                }} className="chronos-button-secondary rounded-full px-3 py-1.5 text-xs">{locale === "cn" ? "ddl 明天" : "ddl Tomorrow"}</button>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  type="date"
+                  value={createSheet.date ?? ""}
+                  onChange={(e) => setCreateSheet((s) => ({ ...s, date: e.target.value }))}
+                  className="chronos-field rounded-2xl px-3 py-2 text-sm"
+                />
+                <input
+                  value={taskDraft.exactTime}
+                  onChange={(e) => setTaskDraft((cur) => ({ ...cur, exactTime: e.target.value }))}
+                  placeholder={locale === "cn" ? "固定时间 16:00" : "Fixed 16:00"}
+                  className="chronos-field rounded-2xl px-3 py-2 text-sm"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  type="date"
+                  value={taskDraft.deadline || ''}
+                  onChange={(e) => setTaskDraft((cur) => ({ ...cur, deadline: e.target.value }))}
+                  className="chronos-field rounded-2xl px-3 py-2 text-sm"
+                  placeholder={locale === 'cn' ? 'DDL 截止日' : 'Deadline'}
+                  title={locale === 'cn' ? '设置截止日期' : 'Set deadline'}
+                />
+                {(() => {
+                  const m = (taskDraft.deadline || (taskDraft.name.match(/ddl\s*(\d{4}-\d{2}-\d{2})/i)?.[1] ?? ''));
+                  if (!m) return <div />;
+                  function shift(dstr: string, n: number) {
+                    const dt = new Date(dstr + 'T00:00:00');
+                    dt.setDate(dt.getDate() - n);
+                    const y = dt.getFullYear();
+                    const mo = String(dt.getMonth() + 1).padStart(2, '0');
+                    const da = String(dt.getDate()).padStart(2, '0');
+                    return `${y}-${mo}-${da}`;
+                  }
+                  return (
+                    <div className="flex items-center gap-2">
+                      <button type="button" onClick={() => setCreateSheet((s) => ({ ...s, date: shift(m, 1) }))} className="chronos-button-secondary rounded-full px-3 py-1.5 text-xs">{locale === 'cn' ? '安排到 DDL 前一天' : 'Plan D-1'}</button>
+                      <button type="button" onClick={() => setCreateSheet((s) => ({ ...s, date: shift(m, 2) }))} className="chronos-button-secondary rounded-full px-3 py-1.5 text-xs">{locale === 'cn' ? '安排到 DDL 前两天' : 'Plan D-2'}</button>
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+            <div className="mt-3 flex gap-2">
+              <button type="button" onClick={() => setCreateSheet({ open: false, date: null })} className="chronos-button-secondary rounded-full px-4 py-2 text-sm">{locale === "cn" ? "取消" : "Cancel"}</button>
+              <button type="button" onClick={() => {
+                setTaskDraft((cur) => ({ ...cur, plannedDate: createSheet.date ?? cur.plannedDate }));
+                // 派发自定义事件，由 handleAddTask 统一处理
+                const ev = new CustomEvent('chronos-quick-add-from-sheet');
+                window.dispatchEvent(ev);
+              }} className="chronos-button-primary rounded-full px-4 py-2 text-sm text-white">{locale === "cn" ? "添加" : "Add"}</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </motion.div>
   );
 }

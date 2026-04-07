@@ -11,6 +11,7 @@ export default function WeekCalendarView({
   tasks,
   teachingWeek,
   onMoveTask,
+  onCreateQuick,
 }: {
   locale: "cn" | "en";
   selectedDate: string;
@@ -18,6 +19,7 @@ export default function WeekCalendarView({
   tasks: PlannerTask[];
   teachingWeek: number;
   onMoveTask?: (id: string, toDate: string) => void;
+  onCreateQuick?: (date: string) => void;
 }) {
   const isCn = locale === "cn";
 
@@ -60,11 +62,15 @@ export default function WeekCalendarView({
           <div key={d} className="text-center text-xs text-[var(--vf-text-soft)]">{d.slice(5)}</div>
         ))}
       </div>
-      <div className="grid grid-cols-7 gap-2">
+      <div className="grid grid-cols-7 gap-2" data-week-grid>
         {weekDays.map((d) => (
           <div
             key={d}
             className="rounded-[24px] border border-[rgba(45,35,25,0.08)] bg-[rgba(255,251,245,0.96)] p-2"
+            onClick={(e) => {
+              const isClickableChild = (e.target as HTMLElement).closest('[draggable],button,input,textarea');
+              if (!isClickableChild) onCreateQuick?.(d);
+            }}
             onDragOver={(e) => { e.preventDefault(); }}
             onDrop={(e) => {
               try {

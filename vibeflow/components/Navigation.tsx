@@ -9,12 +9,13 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-export type NavigationTab = "today" | "list" | "calendar" | "insight";
+export type NavigationTab = "today" | "list" | "calendar" | "tools" | "insight";
 
 const TAB_ICONS: Record<NavigationTab, LucideIcon> = {
   today: CalendarClock,
   list: Shield,
   calendar: Radar,
+  tools: Shield,
   insight: Target,
 };
 

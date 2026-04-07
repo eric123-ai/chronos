@@ -1,5 +1,7 @@
 "use client";
 
+import { Plus } from "lucide-react";
+
 type DeadlineItem = {
   id: string;
   name: string;
@@ -63,13 +65,25 @@ export function TodayDashboard({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={hasScheduleSetup ? onOpenComposer : onOpenImport}
-            className="chronos-button-primary rounded-full px-4 py-3 text-sm font-medium text-white"
-          >
-            {hasScheduleSetup ? (isCn ? "添加今日任务" : "Add today's task") : (isCn ? "导入课表" : "Import schedule")}
-          </button>
+          {hasScheduleSetup ? (
+            <button
+              type="button"
+              onClick={onOpenComposer}
+              className="inline-flex items-center gap-2 rounded-full bg-amber-500 px-4 py-3 text-sm font-medium text-slate-950"
+              aria-label={isCn ? '添加今日任务' : "Add today's task"}
+            >
+              <Plus className="h-4 w-4" /> {isCn ? '添加任务' : 'Add task'}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={onOpenImport}
+              className="inline-flex items-center gap-2 rounded-full bg-amber-500 px-4 py-3 text-sm font-medium text-slate-950"
+              aria-label={isCn ? '导入课表' : 'Import schedule'}
+            >
+              <Plus className="h-4 w-4" /> {isCn ? '导入课表' : 'Import schedule'}
+            </button>
+          )}
         </div>
       </div>
 

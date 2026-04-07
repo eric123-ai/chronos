@@ -18,12 +18,28 @@ const KEYS = [
 
 function NotifyControls() {
   const [perm, setPerm] = useState<NotificationPermission>("default");
-  useEffect(() => { if (typeof window !== 'undefined') setPerm(Notification.permission); }, []);
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined' && typeof Notification !== 'undefined') {
+        setPerm(Notification.permission);
+      } else {
+        setPerm('denied' as NotificationPermission);
+      }
+    } catch {}
+  }, []);
   async function request() {
-    try { const p = await Notification.requestPermission(); setPerm(p); } catch {}
+    try {
+      if (typeof Notification === 'undefined') return;
+      const p = await Notification.requestPermission();
+      setPerm(p);
+    } catch {}
   }
   async function test() {
-    try { const reg = await navigator.serviceWorker.getRegistration(); reg?.active?.postMessage({ type: 'SHOW_NOTIFICATION', title: '测试提醒', body: '这是一条测试通知。' }); } catch {}
+    try {
+      if (!('serviceWorker' in navigator)) return;
+      const reg = await navigator.serviceWorker.getRegistration();
+      reg?.active?.postMessage({ type: 'SHOW_NOTIFICATION', title: '测试提醒', body: '这是一条测试通知。' });
+    } catch {}
   }
   function toggleGlobal(enable: boolean) {
     try { localStorage.setItem('chronos.notifications.enabled', enable ? '1' : '0'); } catch {}
@@ -136,7 +152,7 @@ export default function SettingsPage() {
           <div className="glass-surface rounded-[32px] p-5">
             <div className="text-sm font-semibold">数据备份</div>
             <div className="mt-3 flex flex-wrap items-center gap-2">
-              <button disabled={downloading} onClick={exportJson} className="chronos-button-secondary rounded-full px-4 py-2 text-sm font-medium">
+              <button disabled={downloading} onClick={exportJson} className="chronos-button-secondary rounded-full px-4 py-2 text-sm font-medium" aria-label="导出本地JSON">
                 导出本地 JSON
               </button>
               {session.status === "authenticated" ? (

@@ -1,4 +1,4 @@
-import type { Course, Goal, PlannerTask, RecurrenceRule, Reward, Weekday } from "../types";
+import type { Course, Goal, PlannerTask, RecurrenceRule, Reward, WeekMode, Weekday } from "../types";
 import { readJSON, readNumber, writeJSON, writeNumber } from "./storage";
 
 const COURSES_KEY = "vibeflow.courses.v1";
@@ -8,17 +8,46 @@ const TASKS_KEY = "vibeflow.tasks.v1";
 const GOALS_KEY = "chronos.goals.v1";
 const RECURRENCE_KEY = "chronos.recurrence-rules.v1";
 
+function ensureUniqueTaskIds(tasks: PlannerTask[]) {
+  const seen = new Map<string, number>();
+
+  return tasks.map((task) => {
+    const duplicateCount = seen.get(task.id) ?? 0;
+    seen.set(task.id, duplicateCount + 1);
+
+    if (duplicateCount === 0) return task;
+
+    const suffix = task.createdAt
+      ? task.createdAt.replace(/[^0-9]/g, "").slice(-8)
+      : `${duplicateCount}`;
+
+    return {
+      ...task,
+      id: `${task.id}-dup-${duplicateCount}-${suffix}`,
+    };
+  });
+}
+
 function isCourseArray(payload: unknown): payload is Course[] {
   return (
     Array.isArray(payload) &&
     payload.every(
-      (item) =>
-        item &&
-        typeof item === "object" &&
-        typeof (item as Course).name === "string" &&
-        typeof (item as Course).startTime === "string" &&
-        typeof (item as Course).endTime === "string" &&
-        Number.isFinite((item as Course).weekday),
+      (item) => {
+        const course = item as Course;
+        return (
+          item &&
+          typeof item === "object" &&
+          typeof course.name === "string" &&
+          (course.location === undefined || typeof course.location === "string") &&
+          typeof course.startTime === "string" &&
+          typeof course.endTime === "string" &&
+          (course.weeks === undefined || (Array.isArray(course.weeks) && course.weeks.every((week) => Number.isFinite(week)))) &&
+          (course.weekMode === undefined || ["all", "odd", "even"].includes(course.weekMode as WeekMode)) &&
+          (course.source === undefined || course.source === "manual" || course.source === "imported") &&
+          (course.sourceLabel === undefined || typeof course.sourceLabel === "string") &&
+          Number.isFinite(course.weekday)
+        );
+      },
     )
   );
 }
@@ -61,6 +90,8 @@ function isTaskArray(payload: unknown): payload is PlannerTask[] {
           typeof (item as PlannerTask).plannedDate === "string") &&
         ((item as PlannerTask).goalId === undefined ||
           typeof (item as PlannerTask).goalId === "string") &&
+        ((item as PlannerTask).deadline === undefined ||
+          typeof (item as PlannerTask).deadline === "string") &&
         ((item as PlannerTask).sourceRuleId === undefined ||
           typeof (item as PlannerTask).sourceRuleId === "string") &&
         ((item as PlannerTask).hardBoundary === undefined ||
@@ -129,11 +160,11 @@ export function saveRewards(rewards: Reward[]) {
 }
 
 export function loadTasks(): PlannerTask[] {
-  return readJSON<PlannerTask[]>(TASKS_KEY, [], isTaskArray);
+  return ensureUniqueTaskIds(readJSON<PlannerTask[]>(TASKS_KEY, [], isTaskArray));
 }
 
 export function saveTasks(tasks: PlannerTask[]) {
-  writeJSON(TASKS_KEY, tasks);
+  writeJSON(TASKS_KEY, ensureUniqueTaskIds(tasks));
 }
 
 export function loadGoals(): Goal[] {

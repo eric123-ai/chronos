@@ -1,10 +1,16 @@
 export type Weekday = 1 | 2 | 3 | 4 | 5 | 6 | 7;
+export type WeekMode = "all" | "odd" | "even";
 
 export interface Course {
   name: string;
+  location?: string;
   startTime: string;
   endTime: string;
   weekday: Weekday;
+  weeks?: number[];
+  weekMode?: WeekMode;
+  source?: "manual" | "imported";
+  sourceLabel?: string;
 }
 
 export type HabitAnchor = "morning" | "break" | "after_class" | "night";
@@ -20,7 +26,8 @@ export type TaskCategory =
   | "study"
   | "life"
   | "personal"
-  | "habit";
+  | "habit"
+  | "fixed_timeline";
 
 export interface Goal {
   id: string;
@@ -65,10 +72,17 @@ export interface Task {
   weekday?: Weekday;
   plannedDate?: string;
   goalId?: string;
+  deadline?: string;
   anchor?: HabitAnchor;
   isDeadlineTask?: boolean;
   isMandatory?: boolean;
   exactTime?: string;
+  remindAt?: string; // YYYY-MM-DDTHH:MM local reminder
+  notes?: string;
+  steps?: string[];
+  tags?: string[];
+  listId?: string;
+  projectId?: string;
   isPreSleep?: boolean;
   isAutoInserted?: boolean;
   locked?: boolean;

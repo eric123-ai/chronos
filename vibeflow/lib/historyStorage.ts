@@ -43,7 +43,11 @@ function emptyDailyState(date: string): DailyState {
 }
 
 export function loadHistory(): DailyHistoryRecord[] {
-  return readJSON<DailyHistoryRecord[]>(HISTORY_KEY, [], isHistoryArray);
+  try {
+    return readJSON<DailyHistoryRecord[]>(HISTORY_KEY, [], isHistoryArray).filter((r) => r && typeof r === "object" && typeof r.date === "string");
+  } catch {
+    return [];
+  }
 }
 
 function isSummaryArray(payload: unknown): payload is DailySummary[] {

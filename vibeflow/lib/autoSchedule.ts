@@ -193,7 +193,18 @@ export function autoSchedule(courses: Course[], tasks: PlannerTask[], rewards: R
 
   for (const course of safeCourses) {
     busy.push({ start: course.start, end: course.end });
-    items.push({ type: "course", startTime: formatTime(course.start), endTime: formatTime(course.end), data: { name: course.name, weekday: course.weekday, startTime: formatTime(course.start), endTime: formatTime(course.end) } });
+    items.push({
+      type: "course",
+      startTime: formatTime(course.start),
+      endTime: formatTime(course.end),
+      data: {
+        name: course.name,
+        location: course.location,
+        weekday: course.weekday,
+        startTime: formatTime(course.start),
+        endTime: formatTime(course.end),
+      },
+    });
     if (/网课|健身|专业课|course|workout|gym/i.test(course.name)) {
       items.push({ type: "void", startTime: formatTime(Math.max(dayWindow.start, course.start - 10)), endTime: formatTime(Math.min(dayWindow.end, course.end + 20)), data: { name: "Void Period" } });
       busy.push({ start: Math.max(dayWindow.start, course.start - 10), end: Math.min(dayWindow.end, course.end + 20) });

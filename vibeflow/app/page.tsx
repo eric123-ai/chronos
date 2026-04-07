@@ -1534,15 +1534,31 @@ export default function HomePage() {
         const timer = window.setTimeout(async () => {
           try {
             const reg = await navigator.serviceWorker.getRegistration();
-            reg?.active?.postMessage({ type: 'SHOW_NOTIFICATION', title: locale === 'cn' ? '任务提醒' : 'Task Reminder', body: t.name });
+            reg?.active?.postMessage({ type: 'SHOW_NOTIFICATION', title: locale === 'cn' ? '任务提醒' : 'Task Reminder', body: t.name, data: { taskId: t.id } });
           } catch {}
         }, Math.min(delay, 7 * 24 * 3600 * 1000));
         reminderTimersRef.current[t.id] = timer;
       }
     });
+
+    // listen to SW actions
+    function onMessage(e: MessageEvent) {
+      const msg = e.data || {};
+      if (msg.type === 'NOTIFY_SNOOZE' && msg.taskId) {
+        const minutes = Math.max(1, Number(msg.minutes) || 10);
+        const when = new Date(Date.now() + minutes * 60000);
+        const label = `${when.getFullYear()}-${String(when.getMonth()+1).padStart(2,'0')}-${String(when.getDate()).padStart(2,'0')}T${String(when.getHours()).padStart(2,'0')}:${String(when.getMinutes()).padStart(2,'0')}`;
+        setTasks((cur) => cur.map((t) => t.id === msg.taskId ? { ...t, remindAt: label } : t));
+      } else if (msg.type === 'NOTIFY_DONE' && msg.taskId) {
+        setTasks((cur) => cur.map((t) => t.id === msg.taskId ? { ...t, completed: true, completedAt: new Date().toISOString() } : t));
+      }
+    }
+    navigator.serviceWorker?.addEventListener?.('message', onMessage as any);
+
     return () => {
       Object.values(reminderTimersRef.current).forEach((id) => window.clearTimeout(id));
       reminderTimersRef.current = {};
+      try { navigator.serviceWorker?.removeEventListener?.('message', onMessage as any); } catch {}
     };
   }, [locale, tasks]);
 

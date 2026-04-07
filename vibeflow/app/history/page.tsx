@@ -6,6 +6,8 @@ import { useSession } from "next-auth/react";
 import { LanguageSwitcher } from "../../components/LanguageSwitcher";
 import { useI18n } from "../../components/I18nProvider";
 import { formatLocalDate, loadHistory, loadSummaries } from "../../lib/historyStorage";
+import { loadTasks } from "../../lib/userDataStorage";
+import type { Task } from "../../types";
 import { generateIcsForHistory } from "../../lib/ics";
 
 function parseLocalDate(value: string) {
@@ -93,7 +95,20 @@ export default function HistoryPage() {
     const currentDate = formatLocalDate(new Date());
     setToday(currentDate);
     setSelectedDate(currentDate);
-    setHistoryLog(loadHistory());
+    const existing = loadHistory();
+    // If no history exists yet, seed a local-only summary from today's completed tasks
+    if (existing.length === 0) {
+      try {
+        const tasks = loadTasks();
+        const todayTasks = tasks.filter((t) => t.plannedDate === currentDate && t.completed) as Task[];
+        if (todayTasks.length) {
+          // lazy import to avoid circulars; rely on server upsert when user settles in UI
+          // keep client view non-empty
+          existing.push({ date: currentDate, completedTasks: todayTasks, totalPoints: todayTasks.reduce((s, t) => s + (t.rewardPoints || 0), 0), dailyVibe: "", insight: "" });
+        }
+      } catch {}
+    }
+    setHistoryLog(existing);
     setSummaries(loadSummaries());
     setHydrated(true);
   }, []);
@@ -387,7 +402,7 @@ export default function HistoryPage() {
             </div>
 
             <div className="mt-4 space-y-3">
-  {historyLog.length ? historyLog.slice(0, 8).map((record) => (
+  {(historyLog.length ? historyLog : loadHistory()).slice(0, 8).map((record) => (
     <button
       key={record.date}
       type="button"

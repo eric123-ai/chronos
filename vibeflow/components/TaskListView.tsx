@@ -66,6 +66,7 @@ export default function TaskListView({
       { key: "tomorrow", title: isCn ? "明天" : "Tomorrow", items: pool.filter((t) => isTomorrow(t.plannedDate ?? "")) },
       { key: "week", title: isCn ? "本周" : "This week", items: pool.filter((t) => t.plannedDate && inThisWeek(t.plannedDate)) },
       { key: "scheduled", title: isCn ? "已计划" : "Scheduled", items: pool.filter((t) => t.plannedDate && !isSameDay(t.plannedDate) && !isTomorrow(t.plannedDate) && !inThisWeek(t.plannedDate)) },
+      { key: "unscheduled", title: isCn ? "未计划" : "Unscheduled", items: pool.filter((t) => !t.plannedDate) },
       { key: "overdue", title: isCn ? "已逾期" : "Overdue", items: pool.filter((t) => overdue(t)) },
     ];
   }, [locale, selectedDate, tasks]);

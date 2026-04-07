@@ -3,8 +3,8 @@ import { db } from "../../../../lib/db";
 import { shareLinks, tasks as Tasks } from "../../../../lib/db/schema";
 import { and, eq, isNull } from "drizzle-orm";
 
-export async function GET(_req: NextRequest, { params }: { params: { token: string } }) {
-  const token = params.token;
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ token: string }> }) {
+  const { token } = await params;
   if (!token) return new Response("Bad Request", { status: 400 });
   const [link] = await db.select().from(shareLinks).where(and(eq(shareLinks.token, token), isNull(shareLinks.revokedAt)));
   if (!link) return new Response("Not Found", { status: 404 });

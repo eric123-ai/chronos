@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { requireSession } from "../../../lib/auth";
 import { db } from "../../../lib/db";
 import { histories as Histories } from "../../../lib/db/schema";
-import { and, between, eq, gte, lte } from "drizzle-orm";
+import { and, desc, eq, gte, lte } from "drizzle-orm";
 
 export async function GET(req: NextRequest) {
   const session = await requireSession();
@@ -14,11 +14,13 @@ export async function GET(req: NextRequest) {
 
   if (!from || !to) {
     // fallback: return recent 14
-    const rows = await db.query.histories.findMany({
-      where: (h, { eq }) => eq(h.userId, userId),
-      limit: 14,
-      orderBy: (h, { desc }) => [desc(h.date)],
-    }).catch(() => []);
+    const rows = await db
+      .select()
+      .from(Histories)
+      .where(eq(Histories.userId, userId))
+      .orderBy(desc(Histories.date))
+      .limit(14)
+      .catch(() => []);
     return Response.json({ items: rows });
   }
 

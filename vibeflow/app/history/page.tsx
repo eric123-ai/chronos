@@ -402,27 +402,29 @@ export default function HistoryPage() {
             </div>
 
             <div className="mt-4 space-y-3">
-  {(historyLog.length ? historyLog : loadHistory()).slice(0, 8).map((record) => (
-    <button
-      key={record.date}
-      type="button"
-      onClick={() => setSelectedDate(record.date)}
-      className="w-full rounded-3xl border border-[rgba(45,35,25,0.08)] bg-[rgba(255,251,245,0.96)] px-4 py-4 text-left transition hover:bg-[rgba(247,241,232,0.96)]"
-    >
-      <div className="flex items-center justify-between gap-3">
-        <div className="text-sm font-semibold text-[var(--vf-text)]">{record.date}</div>
-        <div className="text-xs text-[var(--vf-text-muted)]">+{record.totalPoints} / -{record.spentPoints ?? 0}</div>
-      </div>
-      <div className="mt-2 grid grid-cols-3 gap-2 text-xs text-[var(--vf-text-soft)]">
-        <span className="rounded-full bg-[rgba(45,35,25,0.06)] px-2 py-1 text-center">{locale === "cn" ? "完成" : "Done"}: {record.completedTasks.length}</span>
-        <span className="rounded-full bg-[rgba(45,35,25,0.06)] px-2 py-1 text-center">{locale === "cn" ? "XP" : "XP"}: {record.totalPoints}</span>
-        <span className="rounded-full bg-[rgba(45,35,25,0.06)] px-2 py-1 text-center">{locale === "cn" ? "用时估算" : "Est."}: {record.completedTasks.reduce((m, t) => m + (t.estimatedMinutes || 0), 0)}m</span>
-      </div>
-    </button>
-  )) : (
-    <div className="rounded-3xl border border-[rgba(45,35,25,0.08)] bg-[rgba(255,251,245,0.96)] px-4 py-6 text-sm text-[var(--vf-text-muted)]">{text.noHistory}</div>
-  )}
-</div>
+              {(historyLog.length ? historyLog : loadHistory()).length ? (
+                (historyLog.length ? historyLog : loadHistory()).slice(0, 8).map((record) => (
+                  <button
+                    key={record.date}
+                    type="button"
+                    onClick={() => setSelectedDate(record.date)}
+                    className="w-full rounded-3xl border border-[rgba(45,35,25,0.08)] bg-[rgba(255,251,245,0.96)] px-4 py-4 text-left transition hover:bg-[rgba(247,241,232,0.96)]"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="text-sm font-semibold text-[var(--vf-text)]">{record.date}</div>
+                      <div className="text-xs text-[var(--vf-text-muted)]">+{record.totalPoints} / -{record.spentPoints ?? 0}</div>
+                    </div>
+                    <div className="mt-2 grid grid-cols-3 gap-2 text-xs text-[var(--vf-text-soft)]">
+                      <span className="rounded-full bg-[rgba(45,35,25,0.06)] px-2 py-1 text-center">{locale === "cn" ? "完成" : "Done"}: {record.completedTasks.length}</span>
+                      <span className="rounded-full bg-[rgba(45,35,25,0.06)] px-2 py-1 text-center">{locale === "cn" ? "XP" : "XP"}: {record.totalPoints}</span>
+                      <span className="rounded-full bg-[rgba(45,35,25,0.06)] px-2 py-1 text-center">{locale === "cn" ? "用时估算" : "Est."}: {record.completedTasks.reduce((m, t) => m + (t.estimatedMinutes || 0), 0)}m</span>
+                    </div>
+                  </button>
+                ))
+              ) : (
+                <div className="rounded-3xl border border-[rgba(45,35,25,0.08)] bg-[rgba(255,251,245,0.96)] px-4 py-6 text-sm text-[var(--vf-text-muted)]">{text.noHistory}</div>
+              )}
+            </div>
           </section>
         </div>
 

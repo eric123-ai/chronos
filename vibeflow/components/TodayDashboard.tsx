@@ -46,7 +46,7 @@ export function TodayDashboard({
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <div className="text-xs uppercase tracking-[0.28em] text-[#9a5f13]">
-            {isCn ? "今日总览" : "Today"}
+            {isCn ? "今日时间线总览" : "Today timeline"}
           </div>
           <h2 className="mt-2 text-3xl font-semibold tracking-tight text-[var(--vf-text)]">
             {selectedDate}
@@ -55,6 +55,11 @@ export function TodayDashboard({
             {isCn
               ? "先锁定课程，再把真正要做的事放进空档里。"
               : "Lock in classes first, then place the work that actually matters into the free windows."}
+          </p>
+          <p className="mt-1 text-xs text-[var(--vf-text-soft)]">
+            {isCn
+              ? "用途：快速了解今日空档与最近DDL；下一步：点击“添加今日任务（自然语言）”录入（如：明早9点 30min 英语）。"
+              : "Purpose: see today's gaps and next deadline. Next: click 'Add today's task (NL)' and type (e.g., 9am tmr 30m review)."}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">

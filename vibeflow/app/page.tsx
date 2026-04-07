@@ -393,7 +393,7 @@ const TEXT = {
   cn: {
     brand: "时序 Chronos",
     subtitle: "先排课程，再安任务，再把今天真正做完。",
-    tabs: { today: "今日", list: "清单", calendar: "日历", insight: "复盘" },
+    tabs: { today: "今日", list: "清单", calendar: "主历", insight: "复盘" },
     today: "今天",
     addTask: "添加任务",
     addRule: "新建循环规则",
@@ -430,8 +430,8 @@ const TEXT = {
     initializeHeading: "今日安排",
     initializeDescription: "课表会先占位，任务再自动落进空档。",
     createTimeline: "开始安排今天",
-    flowState: "心流状态",
-    soulMode: "灵魂模式",
+    flowState: "状态面板",
+    soulMode: "安心模式",
     sortedTasks: "执行清单",
     exportJson: "导出 JSON",
     history: "历史复盘",
@@ -442,7 +442,7 @@ const TEXT = {
     noRewards: "还没有奖励。",
     goalsPanel: "目标",
     aiReport: "AI 报告",
-    sparkMode: "简化模式",
+    sparkMode: "专注模式",
     flashNotesTitle: "闪念记录",
     flashNotePlaceholder: "机器人 / C++ / 生活灵感",
     saveFlashNote: "保存闪念",
@@ -503,8 +503,8 @@ const TEXT = {
     saveCourse: "保存课时",
     dayMode: "晨曦纸境",
     nightMode: "黑曜深空",
-    calendarTitle: "主历视图",
-    calendarSubtitle: "以日、周、月三种尺度总览时间密度，并可直接跳入当天时间线。",
+    calendarTitle: "主历视图（总览日程）",
+    calendarSubtitle: "日/周/月三视图总览密度，可直接跳入当天时间线。",
     calendarDay: "时间线",
     calendarWeek: "周",
     calendarMonth: "月度",
@@ -529,7 +529,7 @@ const TEXT = {
   en: {
     brand: "Chronos",
     subtitle: "Classes first, tasks second, and a clearer path through the day.",
-    tabs: { today: "Today", list: "List", calendar: "Calendar", insight: "Review" },
+    tabs: { today: "Today", list: "List", calendar: "Master", insight: "Review" },
     today: "Today",
     addTask: "Add task",
     addRule: "Add recurrence rule",
@@ -639,8 +639,8 @@ const TEXT = {
     saveCourse: "Save slot",
     dayMode: "Daylight Paper",
     nightMode: "Obsidian Void",
-    calendarTitle: "Master Calendar",
-    calendarSubtitle: "Switch between day, week, and month to read density at a glance and jump back into the active timeline.",
+    calendarTitle: "Master Calendar (overview)",
+    calendarSubtitle: "Day/Week/Month overview with direct jump back to Today timeline.",
     calendarDay: "Timeline",
     calendarWeek: "Week",
     calendarMonth: "Month",
@@ -1321,11 +1321,52 @@ export default function HomePage() {
 
   const handleAddTask = useCallback(() => {
     if (!taskDraft.name.trim()) return;
-    const parsed = parseQuickCommand(taskDraft);
-    setTasks((current) => [createTask(parsed, selectedDate, selectedWeekday), ...current]);
+    try {
+      // Prefer NLP parser when present to enrich quick add
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { default: quickAddParser } = require("../lib/nlp/quickAddParser");
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const mapParsedToRule = require("../lib/nlp/mapRRule").default as typeof import("../lib/nlp/mapRRule").default;
+
+      const nlp = quickAddParser(String(taskDraft.name));
+      const pre: TaskDraft = { ...taskDraft, name: nlp.title || taskDraft.name };
+      let draft = parseQuickCommand(pre);
+      if (nlp.durationMin) draft = { ...draft, estimatedMinutes: String(Math.max(5, nlp.durationMin)) };
+      let plannedDateForCreate = selectedDate;
+      if (nlp.plannedDate) {
+        const [datePart, timePart] = nlp.plannedDate.split("T");
+        if (datePart) plannedDateForCreate = datePart;
+        if (timePart) {
+          const hm = timePart.slice(0, 5);
+          draft = { ...draft, exactTime: hm, isMandatory: true };
+        }
+      }
+
+      // If rrule exists, offer to save as routine rule via a lightweight confirmation.
+      if (nlp.rrule) {
+        const seedMinutes = Math.max(5, Number(draft.estimatedMinutes) || 10);
+        const newRule = mapParsedToRule(nlp, {
+          draftTitle: draft.name || nlp.title || "例行事项",
+          seedMinutes,
+          urgency: Math.max(0, Math.min(1, Number(draft.urgency) || 0.4)),
+          energy: draft.energyCost,
+          category: draft.category,
+          startsOn: plannedDateForCreate,
+        });
+        if (newRule) {
+          setRules((cur) => [newRule, ...cur]);
+          pushToast(locale === "cn" ? "已保存为规律" : "Saved as routine");
+        }
+      }
+
+      setTasks((current) => [createTask(draft, plannedDateForCreate, selectedWeekday), ...current]);
+    } catch {
+      const parsed = parseQuickCommand(taskDraft);
+      setTasks((current) => [createTask(parsed, selectedDate, selectedWeekday), ...current]);
+    }
     setTaskDraft(DEFAULT_TASK_DRAFT);
     pushToast(text.saved);
-  }, [pushToast, selectedDate, selectedWeekday, taskDraft, text.saved]);
+  }, [locale, pushToast, selectedDate, selectedWeekday, taskDraft, text.saved]);
 
   const handleAddBreak = useCallback((minutes: number = 15) => {
     const name = locale === "cn" ? "休息" : "Break";
@@ -1765,7 +1806,7 @@ export default function HomePage() {
                   daysLeft: daysUntilDate(nextDeadline.deadline),
                 } : null}
                 freeWindows={freeWindows}
-                onOpenImport={() => setActiveTab("blueprint")}
+                onOpenImport={() => setActiveTab("today")}
                 onOpenComposer={() => taskComposerRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })}
               />
               <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
@@ -1839,6 +1880,11 @@ export default function HomePage() {
 
           {activeTab === "calendar" ? (
             <div className="space-y-4">
+              <div className="text-xs text-[var(--vf-text-soft)]">
+                {locale === "cn"
+                  ? "用途：总览日程密度与冲突；下一步：在周历中拖拽调整，或点下方按钮跳回今日时间线。"
+                  : "Purpose: overview of schedule density/conflicts. Next: drag in the week view, or jump back to Today timeline."}
+              </div>
               <CalendarComponent
                 selectedDate={selectedDate}
                 tasks={tasks}
@@ -1867,7 +1913,7 @@ export default function HomePage() {
             </div>
           ) : null}
 
-          {activeTab === "arsenal" ? (
+          {activeTab === "list" ? (
             <SecondaryToolsPanel
               locale={locale}
               templates={TEMPLATE_LIBRARY}
@@ -2180,10 +2226,10 @@ export default function HomePage() {
             </div>
           ) : null}
 
-          {activeTab === "blueprint" ? (
+          {false ? (
             <div className="grid gap-4 xl:grid-cols-[380px_minmax(0,1fr)]">
               <section className="glass-surface rounded-[32px] p-5">
-                <div className="text-sm font-semibold">{text.tabs.blueprint}</div>
+                <div className="text-sm font-semibold">{text.tabs.calendar}</div>
                 <div className="mt-4 grid gap-3">
                   <input value={ruleDraft.title} onChange={(event) => setRuleDraft((current) => ({ ...current, title: event.target.value }))} placeholder={text.ruleName} className={fieldClassName} />
                   <div className="grid grid-cols-2 gap-2">
@@ -2211,7 +2257,7 @@ export default function HomePage() {
             </div>
           ) : null}
 
-          {activeTab === "arsenal" ? (
+          {false ? (
             <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
               <section className="glass-surface rounded-[32px] p-5">
                 <div className="flex items-center justify-between gap-3">

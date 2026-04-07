@@ -85,10 +85,10 @@ export function SecondaryToolsPanel({
         <div className="flex items-center justify-between gap-3">
           <div>
             <div className="text-sm font-semibold text-[var(--vf-text)]">
-              {isCn ? "工具箱" : "Toolbox"}
+              {isCn ? "快捷模块（常用操作）" : "Quick modules (common)"}
             </div>
             <div className="mt-1 text-sm text-[var(--vf-text-muted)]">
-              {isCn ? "把常用流程收起来，首页只留下真正需要当天决策的内容。" : "Move repeatable workflows here so the home screen can stay focused."}
+              {isCn ? "用途：把常用功能放在这里；下一步：选中模板后点‘注入今日时间线’。" : "Purpose: stash common tools. Next: pick a template then 'Inject into timeline'."}
             </div>
           </div>
           <div className="rounded-full border border-[rgba(45,35,25,0.08)] bg-[rgba(255,251,245,0.96)] px-3 py-2 text-xs text-[var(--vf-text-muted)]">
@@ -130,7 +130,7 @@ export function SecondaryToolsPanel({
             </div>
           </div>
           <button type="button" onClick={() => onImportTemplate(selectedTemplateId)} className="chronos-button-primary mt-4 w-full rounded-full px-4 py-3 text-sm font-medium text-white">
-            {isCn ? "加入今日任务" : "Add to today"}
+            {isCn ? "注入今日时间线" : "Inject into timeline"}
           </button>
         </section>
 
@@ -140,7 +140,7 @@ export function SecondaryToolsPanel({
               <CalendarPlus2 className="h-4 w-4" />
             </div>
             <div>
-              <div className="text-sm font-semibold text-[var(--vf-text)]">{isCn ? "固定流程" : "Routines"}</div>
+              <div className="text-sm font-semibold text-[var(--vf-text)]">{isCn ? "固定流程（模板库）" : "Routines (templates)"}</div>
               <div className="mt-1 text-sm text-[var(--vf-text-muted)]">{isCn ? "比如通勤、社团、比赛前检查。" : "For commuting, club work, or pre-competition prep."}</div>
             </div>
           </div>
@@ -235,14 +235,14 @@ export function SecondaryToolsPanel({
               <Bot className="h-4 w-4" />
             </div>
             <div>
-              <div className="text-sm font-semibold text-[var(--vf-text)]">{isCn ? "灵魂模式" : "Soul mode"}</div>
+              <div className="text-sm font-semibold text-[var(--vf-text)]">{isCn ? "安心模式" : "Calm mode"}</div>
               <div className="mt-1 text-sm text-[var(--vf-text-muted)]">
-                {isCn ? "不再常驻首页，只在你主动需要减压时开启。" : "No longer pinned to the home screen. Open it only when you need a softer mode."}
+                {isCn ? "需要放缓时再开启，避免与首页提示重复。" : "Open only when needed to avoid overlap with home hints."}
               </div>
             </div>
           </div>
           <button type="button" onClick={onEnterSoulMode} className="chronos-button-secondary mt-4 rounded-full px-4 py-2 text-sm font-medium">
-            {isCn ? "进入灵魂模式" : "Enter soul mode"}
+            {isCn ? "进入安心模式" : "Enter calm mode"}
           </button>
         </section>
       </aside>

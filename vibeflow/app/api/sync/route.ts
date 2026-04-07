@@ -107,6 +107,12 @@ const SyncRequest = z.object({
   summaries: z.array(SummaryUpsert).optional(),
 });
 
+function toTimestamp(value?: string) {
+  if (!value) return undefined;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? undefined : parsed;
+}
+
 export async function POST(req: NextRequest) {
   const session = await requireSession();
   if (!session) return new Response("Unauthorized", { status: 401 });
@@ -125,7 +131,13 @@ export async function POST(req: NextRequest) {
   }
   if (input.courses?.length) {
     for (const c of input.courses) {
-      await db.insert(Courses).values({ ...c, userId }).onConflictDoUpdate({ target: Courses.id, set: { ...c, userId } });
+      const nextCourse = {
+        ...c,
+        userId,
+        updatedAt: toTimestamp(c.updatedAt),
+        deletedAt: toTimestamp(c.deletedAt),
+      };
+      await db.insert(Courses).values(nextCourse).onConflictDoUpdate({ target: Courses.id, set: nextCourse });
     }
   }
   if (input.goals?.length) {

@@ -1771,27 +1771,27 @@ export default function HomePage() {
       {!isFlatMode ? <div className="pointer-events-none absolute inset-0 z-0 chronos-noise" /> : null}
       
       <SyncBootstrap />
-      <div className="relative z-20 mx-auto max-w-7xl px-4 py-6 transition-colors duration-700">
+      <div className="relative z-20 mx-auto max-w-7xl px-4 py-4 pb-32 sm:py-6 sm:pb-28 transition-colors duration-700">
         {activeTab === "today" ? (
-          <header className="glass-surface relative overflow-hidden rounded-[32px] px-6 py-6">
+          <header className="glass-surface relative overflow-hidden rounded-[28px] px-4 py-5 sm:rounded-[32px] sm:px-6 sm:py-6">
             {!isFlatMode ? <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(92,126,164,0.16),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(67,90,116,0.12),transparent_28%)]" /> : null}
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div className="relative flex-1">
                 <div className={`font-precision text-sm uppercase ${isFlatMode ? "text-[#9a5f13]" : "text-[#f0c46e]"}`}>
                   {locale === "cn" ? "大学生时间规划 V1" : "Student planning v1"}
                 </div>
-                <h1 className={`font-display mt-2 text-4xl font-black tracking-tighter md:text-6xl ${titleClassName}`}>{text.brand}</h1>
+                <h1 className={`font-display mt-2 text-3xl font-black tracking-tighter sm:text-4xl md:text-6xl ${titleClassName}`}>{text.brand}</h1>
                 <p className={`mt-2 max-w-3xl text-sm ${mutedTextClassName}`}>{text.subtitle}</p>
                 <div className={`font-precision mt-3 text-xs ${publicApiUrl ? subtleTextClassName : mutedTextClassName}`}>
                   {publicApiUrl ? `API: ${publicApiUrl}` : (locale === "cn" ? "本地模式运行中" : "Running in local mode")}
                 </div>
-                <div className={`mt-5 grid gap-4 rounded-[30px] p-5 md:grid-cols-[minmax(0,1fr)_auto] md:items-end ${shellGlassClassName}`}>
+                <div className={`mt-5 grid gap-4 rounded-[24px] p-4 sm:rounded-[30px] sm:p-5 md:grid-cols-[minmax(0,1fr)_auto] md:items-end ${shellGlassClassName}`}>
                   <div>
                     <div className={`text-xs uppercase tracking-[0.28em] ${isFlatMode ? "text-[#9a5f13]" : "text-[#e0b45c]"}`}>{text.initializeTitle}</div>
                     <h2 className={`mt-3 text-2xl font-semibold ${titleClassName}`}>{text.initializeHeading}</h2>
                     <p className={`mt-2 max-w-2xl text-sm ${mutedTextClassName}`}>{text.initializeDescription}</p>
                   </div>
-                <button type="button" onClick={handleCreateTimeline} className={`${primaryButtonClassName} min-w-[168px]`}>
+                <button type="button" onClick={handleCreateTimeline} className={`${primaryButtonClassName} min-h-11 min-w-[148px] sm:min-w-[168px]`}>
                   {text.createTimeline}
                 </button>
               </div>
@@ -1801,13 +1801,13 @@ export default function HomePage() {
               <button
                 type="button"
                 onClick={() => importSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
-                className="inline-flex items-center gap-2 rounded-full border border-[rgba(45,35,25,0.12)] bg-[rgba(255,251,245,0.96)] px-4 py-2 text-sm"
+                className="inline-flex min-h-10 items-center gap-2 rounded-full border border-[rgba(45,35,25,0.12)] bg-[rgba(255,251,245,0.96)] px-4 py-2 text-sm"
                 title={locale === 'cn' ? '导入课表：支持文本/图片/文件三种方式' : 'Import schedule: text/image/file'}
               >
                 {locale === 'cn' ? '导入课表' : 'Import schedule'}
               </button>
-              <Link href="/history" className="chronos-button-secondary rounded-full px-4 py-2 text-sm font-medium">{text.history}</Link>
-              <Link href="/settings" className="chronos-button-secondary rounded-full px-4 py-2 text-sm font-medium">{locale === "cn" ? "设置" : "Settings"}</Link>
+              <Link href="/history" className="chronos-button-secondary hidden rounded-full px-4 py-2 text-sm font-medium sm:inline-flex">{text.history}</Link>
+              <Link href="/settings" className="chronos-button-secondary hidden rounded-full px-4 py-2 text-sm font-medium sm:inline-flex">{locale === "cn" ? "设置" : "Settings"}</Link>
             </div>
           </div>
         </header>
@@ -1834,7 +1834,7 @@ export default function HomePage() {
                 onOpenImport={() => setActiveTab("today")}
                 onOpenComposer={() => setCreateSheet({ open: true, date: selectedDate })}
               />
-              <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+              <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_360px]">
                 <TodayTimeline
                   locale={locale}
                   selectedDate={selectedDate}
@@ -1958,12 +1958,12 @@ export default function HomePage() {
               onQuickRemind={(id, minutes) => {
                 setTasks((cur) => cur.map((x) => x.id === id ? { ...x, remindAt: `${selectedDate}T${new Date(Date.now()+minutes*60000).toTimeString().slice(0,5)}` } : x));
               }}
-              onAddTaskForDate={(date, text) => {
+              onAddTaskForDate={(date, inputText) => {
                 try {
                   // eslint-disable-next-line @typescript-eslint/no-var-requires
                   const { default: quickAddParser } = require("../lib/nlp/quickAddParser");
-                  const nlp = quickAddParser(String(text));
-                  const pre: TaskDraft = { ...taskDraft, name: nlp.title || text };
+                  const nlp = quickAddParser(String(inputText));
+                  const pre: TaskDraft = { ...taskDraft, name: nlp.title || inputText };
                   let draft = parseQuickCommand(pre);
                   if (nlp.durationMin) draft = { ...draft, estimatedMinutes: String(Math.max(5, nlp.durationMin)) };
                   let target = date || selectedDate;
@@ -1976,7 +1976,7 @@ export default function HomePage() {
                   setTaskDraft(DEFAULT_TASK_DRAFT);
                   pushToast(text.saved);
                 } catch {
-                  const draft = parseQuickCommand({ ...taskDraft, name: text });
+                  const draft = parseQuickCommand({ ...taskDraft, name: inputText });
                   const target = date || selectedDate;
                   setTasks((cur) => [createTask(draft, target, selectedWeekday), ...cur]);
                   setTaskDraft(DEFAULT_TASK_DRAFT);

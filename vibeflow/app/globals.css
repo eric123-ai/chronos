@@ -44,6 +44,10 @@ body {
 }
 
 body {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans);
@@ -369,6 +373,16 @@ select option {
 
 .chronos-nav-indicator {
   background: var(--vf-nav-active);
+}
+
+@media (max-width: 767px) {
+  .glass-surface {
+    border-radius: 28px;
+  }
+
+  .chronos-nav {
+    padding-bottom: max(6px, env(safe-area-inset-bottom));
+  }
 }
 
 /* Unified select popover styles for both themes */

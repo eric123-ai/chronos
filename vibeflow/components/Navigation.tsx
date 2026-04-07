@@ -30,7 +30,7 @@ export function Navigation({
 }) {
   return (
     <div className="chronos-nav fixed bottom-0 left-0 right-0 z-40">
-      <div className="mx-auto flex max-w-3xl items-center justify-around px-4 py-3">
+      <div className="mx-auto flex max-w-3xl items-center justify-around px-3 py-2.5 sm:px-4 sm:py-3">
         {(Object.keys(TAB_ICONS) as NavigationTab[]).map((tab) => {
           const Icon = TAB_ICONS[tab];
           const active = activeTab === tab;
@@ -40,7 +40,7 @@ export function Navigation({
               key={tab}
               type="button"
               onClick={() => onChange(tab)}
-              className={`chronos-nav-item relative flex min-w-[72px] flex-col items-center gap-1 rounded-2xl px-3 py-2.5 text-xs font-medium transition ${active ? "is-active" : ""}`}
+              className={`chronos-nav-item relative flex min-w-[68px] flex-col items-center gap-1 rounded-2xl px-2 py-2.5 text-[11px] font-medium transition sm:min-w-[72px] sm:px-3 sm:text-xs ${active ? "is-active" : ""}`}
             >
               <Icon className="h-4 w-4" />
               {labels[tab]}

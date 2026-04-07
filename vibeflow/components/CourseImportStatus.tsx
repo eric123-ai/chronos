@@ -51,15 +51,15 @@ export function CourseImportStatus({
   const isCn = locale === "cn";
 
   return (
-    <section className="glass-surface rounded-[32px] p-5">
-      <div className="flex items-start justify-between gap-3">
+    <section className="glass-surface rounded-[28px] p-4 sm:rounded-[32px] sm:p-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="text-sm font-semibold text-[var(--vf-text)]">
             {isCn ? "课表与固定安排" : "Classes and fixed blocks"}
           </div>
           <div className="mt-1 text-sm text-[var(--vf-text-muted)]">
             {courses.length
-              ? (isCn ? "课表已导入，系统会自动避开这些时间。" : "Schedule imported. Chronos avoids these blocks automatically.")
+              ? (isCn ? "课表已导入，系统会自动避开这些时间。" : "Schedule imported. Chronos will avoid these blocks automatically.")
               : (isCn ? "先把课表导进来，今天的任务安排才会更准。" : "Import your schedule first for better task placement.")}
           </div>
         </div>
@@ -68,7 +68,7 @@ export function CourseImportStatus({
           onClick={() => setExpanded((current) => !current)}
           className="chronos-button-secondary rounded-full px-4 py-2 text-sm font-medium"
         >
-          {expanded ? (isCn ? "收起" : "Hide") : (isCn ? "展开导入" : "Open import")}
+          {expanded ? (isCn ? "收起导入" : "Hide import") : (isCn ? "展开导入" : "Open import")}
         </button>
       </div>
 
@@ -106,7 +106,7 @@ export function CourseImportStatus({
           </div>
         )) : (
           <div className="text-sm text-[var(--vf-text-muted)]">
-            {isCn ? "本周还没有课程区块。" : "No class blocks for this week."}
+            {isCn ? "本周还没有课程安排。" : "No class blocks for this week."}
           </div>
         )}
       </div>

@@ -127,8 +127,8 @@ export function ScheduleImportPanel({
     ? "border border-[rgba(191,122,34,0.16)] bg-[rgba(191,122,34,0.08)] text-[#9a5f13]"
     : "border border-[rgba(125,142,163,0.14)] bg-[rgba(91,114,148,0.12)] text-[#d8e1ef]";
   const innerPanelClassName = isFlatMode
-    ? "rounded-[28px] border border-[rgba(45,35,25,0.08)] bg-[rgba(247,241,232,0.84)] p-4"
-    : "rounded-[28px] border border-[rgba(125,142,163,0.12)] bg-[rgba(10,16,24,0.32)] p-4";
+    ? "rounded-[24px] border border-[rgba(45,35,25,0.08)] bg-[rgba(247,241,232,0.84)] p-4"
+    : "rounded-[24px] border border-[rgba(125,142,163,0.12)] bg-[rgba(10,16,24,0.32)] p-4";
   const previewItemClassName = isFlatMode
     ? "rounded-2xl border border-[rgba(45,35,25,0.08)] bg-[rgba(255,251,245,0.96)] px-4 py-3"
     : "rounded-2xl bg-white/6 px-4 py-3";
@@ -221,7 +221,7 @@ export function ScheduleImportPanel({
   ];
 
   return (
-    <div className="glass-surface rounded-[32px] p-5">
+    <div className="glass-surface rounded-[28px] p-4 sm:rounded-[32px] sm:p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className={`text-sm font-semibold ${titleClassName}`}>{labels.title}</div>
@@ -232,7 +232,7 @@ export function ScheduleImportPanel({
         </div>
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-2">
+      <div className="mt-4 grid grid-cols-3 gap-2">
         {modeButtons.map((item) => {
           const Icon = item.icon;
           const active = item.key === mode;
@@ -242,14 +242,14 @@ export function ScheduleImportPanel({
               type="button"
               onClick={() => resetPreview(item.key)}
               className={[
-                "inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm transition",
+                "inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl px-3 py-2 text-xs transition sm:text-sm",
                 active
                   ? (isFlatMode ? "border border-[rgba(191,122,34,0.28)] bg-[rgba(191,122,34,0.1)] text-[#9a5f13]" : "border border-amber-400/30 bg-amber-500/10 text-[#f0c46e]")
-                  : (isFlatMode ? "border border-[rgba(45,35,25,0.08)] bg-[rgba(255,251,245,0.84)] text-[#6f655b] hover:bg-[rgba(191,122,34,0.06)] hover:text-[#201b16]" : "border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white"),
+                  : (isFlatMode ? "border border-[rgba(45,35,25,0.08)] bg-[rgba(255,251,245,0.84)] text-[#6f655b]" : "border border-white/10 bg-white/5 text-slate-300"),
               ].join(" ")}
             >
               <Icon className="h-4 w-4" />
-              {item.label}
+              <span className="truncate">{item.label}</span>
             </button>
           );
         })}
@@ -269,7 +269,7 @@ export function ScheduleImportPanel({
                 event.currentTarget.value = "";
               }}
             />
-            <button type="button" onClick={() => fileInputRef.current?.click()} className="chronos-button-secondary rounded-full px-4 py-2 text-sm font-medium text-white">
+            <button type="button" onClick={() => fileInputRef.current?.click()} className="chronos-button-secondary min-h-11 rounded-full px-4 py-2 text-sm font-medium">
               <span className="inline-flex items-center gap-2">
                 <FileSpreadsheet className="h-4 w-4" />
                 {labels.uploadFile}
@@ -291,15 +291,17 @@ export function ScheduleImportPanel({
                 event.currentTarget.value = "";
               }}
             />
-            <button type="button" onClick={() => imageInputRef.current?.click()} className="chronos-button-secondary rounded-full px-4 py-2 text-sm font-medium text-white">
+            <button type="button" onClick={() => imageInputRef.current?.click()} className="chronos-button-secondary min-h-11 rounded-full px-4 py-2 text-sm font-medium">
               <span className="inline-flex items-center gap-2">
                 <ScanSearch className="h-4 w-4" />
                 {labels.uploadImage}
               </span>
             </button>
-            <div className={`text-xs ${mutedClassName}`}>{labels.imageHint}</div>
+            <div className={`text-xs leading-5 ${mutedClassName}`}>{labels.imageHint}</div>
             {previewImage ? (
-              <img src={previewImage} alt="schedule preview" className={`max-h-64 w-full rounded-2xl object-contain ${isFlatMode ? "border border-[rgba(45,35,25,0.08)]" : "border border-white/10"}`} />
+              <div className="overflow-hidden rounded-2xl">
+                <img src={previewImage} alt="schedule preview" className={`max-h-56 w-full rounded-2xl object-contain ${isFlatMode ? "border border-[rgba(45,35,25,0.08)]" : "border border-white/10"}`} />
+              </div>
             ) : null}
           </div>
         ) : null}
@@ -311,10 +313,10 @@ export function ScheduleImportPanel({
               value={rawText}
               onChange={(event) => setRawText(event.target.value)}
               placeholder={labels.placeholder}
-              className={`chronos-field w-full resize-none rounded-[28px] px-4 py-4 text-sm ${isFlatMode ? "text-[#201b16] placeholder:text-[#8a7c70]" : "text-slate-100 placeholder:text-slate-500"}`}
+              className={`chronos-field w-full resize-none rounded-[24px] px-4 py-4 text-sm ${isFlatMode ? "text-[#201b16] placeholder:text-[#8a7c70]" : "text-slate-100 placeholder:text-slate-500"}`}
             />
             <div className="mt-4">
-              <button type="button" onClick={handleTextParse} className="chronos-button-secondary rounded-full px-4 py-2 text-sm font-medium text-white">
+              <button type="button" onClick={handleTextParse} className="chronos-button-secondary min-h-11 rounded-full px-4 py-2 text-sm font-medium">
                 {labels.parse}
               </button>
             </div>
@@ -322,7 +324,7 @@ export function ScheduleImportPanel({
         ) : null}
 
         {state === "parsing" ? <div className={`mt-4 text-sm ${isFlatMode ? "text-[#9a5f13]" : "text-amber-200"}`}>{labels.processing}</div> : null}
-        {state === "error" && errorMessage ? <div className="mt-4 text-sm text-rose-300">{errorMessage}</div> : null}
+        {state === "error" && errorMessage ? <div className="mt-4 text-sm text-rose-500">{errorMessage}</div> : null}
       </div>
 
       <div className={`mt-5 ${innerPanelClassName}`}>
@@ -330,9 +332,9 @@ export function ScheduleImportPanel({
           <div className={`text-sm font-medium ${titleClassName}`}>{labels.parsed}</div>
           <div className={`rounded-full px-3 py-1 text-xs ${isFlatMode ? "bg-[rgba(191,122,34,0.08)] text-[#6f655b]" : "bg-white/10 text-slate-300"}`}>{parsedCourses.length}</div>
         </div>
-        <div className={`mt-3 text-xs ${mutedClassName}`}>{labels.replaceHint}</div>
+        <div className={`mt-3 text-xs leading-5 ${mutedClassName}`}>{labels.replaceHint}</div>
         {sourceLabel ? <div className={`mt-2 text-xs ${subtleClassName}`}>{labels.sourceLabel}: {sourceLabel}</div> : null}
-        {warning ? <div className="mt-2 text-xs text-amber-200">{warning}</div> : null}
+        {warning ? <div className="mt-2 text-xs text-amber-600">{warning}</div> : null}
 
         {mode === "image" && ocrText ? (
           <div className={`mt-4 rounded-2xl p-4 ${isFlatMode ? "bg-[rgba(255,251,245,0.96)]" : "bg-white/6"}`}>
@@ -345,19 +347,21 @@ export function ScheduleImportPanel({
           {parsedEntries.length ? parsedEntries.slice(0, 8).map((entry, index) => (
             <div key={`${entry.day}-${entry.startTime}-${entry.title}-${entry.location}-${index}`} className={previewItemClassName}>
               <div className="grid gap-3">
-                <div className="grid gap-2 md:grid-cols-2">
+                <div className="grid gap-2 sm:grid-cols-2">
                   <input value={entry.title} onChange={(event) => updateEntry(index, { title: event.target.value })} className={`chronos-field h-10 rounded-2xl px-3 text-sm ${isFlatMode ? "text-[#201b16]" : "text-slate-100"}`} />
                   <input value={entry.location} onChange={(event) => updateEntry(index, { location: event.target.value })} placeholder="地点 / Location" className={`chronos-field h-10 rounded-2xl px-3 text-sm ${isFlatMode ? "text-[#201b16]" : "text-slate-100"}`} />
                 </div>
-                <div className="grid gap-2 md:grid-cols-[120px_1fr_1fr_auto]">
+                <div className="grid gap-2 sm:grid-cols-2">
                   <select value={entry.day} onChange={(event) => updateEntry(index, { day: event.target.value })} className={`chronos-field h-10 rounded-2xl px-3 text-sm ${isFlatMode ? "text-[#201b16]" : "text-slate-100"}`}>
                     {dayOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                   </select>
+                  <button type="button" onClick={() => removeEntry(index)} className="rounded-full border border-rose-400/20 bg-rose-500/10 px-3 py-2 text-xs text-rose-500">{labels.remove}</button>
+                </div>
+                <div className="grid gap-2 sm:grid-cols-2">
                   <input value={entry.startTime} onChange={(event) => updateEntry(index, { startTime: event.target.value })} className={`chronos-field h-10 rounded-2xl px-3 text-sm ${isFlatMode ? "text-[#201b16]" : "text-slate-100"}`} />
                   <input value={entry.endTime} onChange={(event) => updateEntry(index, { endTime: event.target.value })} className={`chronos-field h-10 rounded-2xl px-3 text-sm ${isFlatMode ? "text-[#201b16]" : "text-slate-100"}`} />
-                  <button type="button" onClick={() => removeEntry(index)} className="rounded-full border border-rose-400/20 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">{labels.remove}</button>
                 </div>
-                <div className="flex items-center justify-between gap-3">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <div className={`text-xs ${mutedClassName}`}>{labels.editHint}</div>
                   <div className="text-right">
                     {formatWeeksSummary(entry.weeks, entry.weekMode) ? (
@@ -378,7 +382,7 @@ export function ScheduleImportPanel({
           )}
         </div>
 
-        <div className="mt-4 flex flex-wrap gap-3">
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row">
           <button
             type="button"
             onClick={() => onImport(parsedCourses, parsedEntries, {
@@ -389,7 +393,7 @@ export function ScheduleImportPanel({
             })}
             disabled={!parsedCourses.length}
             className={[
-              "rounded-full px-4 py-2 text-sm font-medium text-white transition",
+              "rounded-full px-4 py-3 text-sm font-medium text-white transition",
               parsedCourses.length
                 ? "chronos-button-primary"
                 : (isFlatMode ? "cursor-not-allowed border border-[rgba(45,35,25,0.08)] bg-[rgba(247,241,232,0.7)] text-[#8a7c70]" : "cursor-not-allowed border border-white/10 bg-white/8 text-slate-500"),
@@ -400,7 +404,7 @@ export function ScheduleImportPanel({
               {labels.sync}
             </span>
           </button>
-          <button type="button" onClick={() => resetPreview()} className="chronos-button-secondary rounded-full px-4 py-2 text-sm font-medium text-white">
+          <button type="button" onClick={() => resetPreview()} className="chronos-button-secondary rounded-full px-4 py-3 text-sm font-medium">
             {labels.reset}
           </button>
         </div>

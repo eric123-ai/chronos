@@ -29,6 +29,7 @@ import {
   useState,
 } from "react";
 import { CalendarComponent } from "../components/CalendarComponent";
+import WeekCalendarView from "../components/WeekCalendarView";
 import { CourseImportStatus } from "../components/CourseImportStatus";
 import { Navigation } from "../components/Navigation";
 import { LanguageSwitcher } from "../components/LanguageSwitcher";
